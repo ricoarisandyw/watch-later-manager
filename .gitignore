@@ -1,0 +1,46 @@
+# ---------- macOS ----------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# ---------- Editors ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---------- Node ----------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- Local assistant / tooling folders ----------
+.claude/
+.cc-writes/
+
+# ---------- Packaging output ----------
+dist/
+build/
+*.zip
+*.crx
+
+# Extension signing keys: never commit these
+*.pem
+
+# ---------- Tests and coverage ----------
+coverage/
+.nyc_output/
+
+# ---------- Local environment and secrets ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Logs ----------
+*.log
+
+# ---------- Personal backups made with the extension's Export button ----------
+my-watch-later-*.json

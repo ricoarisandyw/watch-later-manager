@@ -1,0 +1,10 @@
+{
+  "name": "my-watch-later",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser extension: save YouTube videos from the right-click menu and browse them in a filterable dialog.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

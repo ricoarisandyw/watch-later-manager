@@ -1,0 +1,145 @@
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f2f2f2;
+  --fg: #0f0f0f;
+  --muted: #606060;
+  --line: #e0e0e0;
+  --accent: #cc0000;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f1f1f;
+    --bg-soft: #2d2d2d;
+    --fg: #f1f1f1;
+    --muted: #aaaaaa;
+    --line: #3d3d3d;
+    --accent: #ff4e45;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 14px/1.4 Roboto, Arial, sans-serif;
+}
+
+.popup {
+  width: 280px;
+  padding: 16px;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+h1 {
+  margin: 0 0 14px;
+  font-size: 17px;
+}
+
+h2 {
+  margin: 28px 0 8px;
+  font-size: 15px;
+}
+
+p {
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+
+.stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.stat {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--bg-soft);
+  text-align: center;
+}
+
+.stat strong {
+  display: block;
+  font-size: 22px;
+}
+
+.stat span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+button,
+.btn {
+  display: inline-block;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button.primary {
+  width: 100%;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+button.danger {
+  color: var(--accent);
+}
+
+.link {
+  display: block;
+  margin-top: 12px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+label.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+label.row small {
+  display: block;
+  color: var(--muted);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.status {
+  min-height: 20px;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--accent);
+}

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Watch Later – Settings</title>
+    <link rel="stylesheet" href="../popup/popup.css">
+  </head>
+  <body>
+    <main class="page">
+      <h1>▶ My Watch Later – Settings</h1>
+
+      <h2>Behavior</h2>
+      <label class="row">
+        <input type="checkbox" id="overrideWatchLater">
+        <span>Show the dialog instead of YouTube's Watch Later page
+          <small>Closing the dialog shows YouTube's original list.</small></span>
+      </label>
+      <label class="row">
+        <input type="checkbox" id="autoOpenHome">
+        <span>Open the dialog when youtube.com home loads</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" id="promptOnFinish">
+        <span>Show the Should Rewatch / Remove prompt on videos saved in My Watch Later
+          <small>Shows when you open the video and stays until you choose. It comes back when the video ends.</small></span>
+      </label>
+
+      <h2>History &amp; stats</h2>
+      <label class="row">
+        <input type="checkbox" id="keepHistory">
+        <span>Keep a history of what I add, finish and remove
+          <small>Powers the 📊 Stats tab. It stays in this browser and is never sent anywhere.</small></span>
+      </label>
+      <p id="history-count">…</p>
+      <div class="buttons">
+        <button type="button" id="clear-history" class="danger">Clear history</button>
+      </div>
+
+      <h2>Backup</h2>
+      <p>Your list and your history live in this browser only. Export a file now and then so you never lose them.</p>
+      <div class="buttons">
+        <button type="button" id="export">Export to file</button>
+        <button type="button" id="import">Import from file</button>
+        <input type="file" id="file" accept="application/json,.json" hidden>
+      </div>
+
+      <h2>Danger zone</h2>
+      <div class="buttons">
+        <button type="button" id="clear" class="danger">Delete all saved videos</button>
+      </div>
+
+      <p id="status" class="status" role="status"></p>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
