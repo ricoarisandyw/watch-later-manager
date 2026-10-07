@@ -11,6 +11,7 @@ import {
   DATE_PRESETS,
   DURATION_BUCKETS,
   SORT_OPTIONS,
+  TIME_LEFT_BUCKETS,
   VIEW_BUCKETS,
   applyFilters,
   customRange,
@@ -27,15 +28,18 @@ import {
   uniqueTags,
 } from '../lib/filters.js';
 import { fetchVideoMeta } from '../lib/metadata.js';
+import { withProgress } from '../lib/progress.js';
 import * as store from '../lib/storage.js';
 import { loadAll, removeAll } from './native-wl.js';
 import { h } from './dom.js';
+import { createProgressTracker } from './progress.js';
 import { renderStats } from './stats.js';
 import { EVENT, dayKey, eventFor, makeEvent } from '../lib/events.js';
 
-// The four "range" filters. Each one has presets plus a "Custom range…" where you type the values.
+// The five "range" filters. Each one has presets plus a "Custom range…" where you type the values.
 const RANGE_KINDS = [
   { key: 'duration', label: 'Length', presets: DURATION_BUCKETS, input: 'number', unit: 'min' },
+  { key: 'timeLeft', label: 'Time left', presets: TIME_LEFT_BUCKETS, input: 'number', unit: 'min' },
   { key: 'views', label: 'Views', presets: VIEW_BUCKETS, input: 'text', hint: 'e.g. 10k' },
   { key: 'published', label: 'Published', presets: DATE_PRESETS, input: 'date' },
   { key: 'saved', label: 'Saved', presets: DATE_PRESETS, input: 'date' },
@@ -50,6 +54,7 @@ const freshFilters = () => ({
   sort: 'added-desc',
   // each range filter is '' (off), a preset key, or 'custom' (then the typed values below are used)
   duration: '',
+  timeLeft: '',
   views: '',
   published: '',
   saved: '',
@@ -60,6 +65,7 @@ const state = {
   open: false,
   tab: LISTS.WATCH_LATER,
   videos: [],
+  progress: {}, // video id -> { sec, at }: how far you got in each saved video
   settings: { ...store.DEFAULT_SETTINGS },
   filters: freshFilters(),
   autoOpenedForWL: false,
@@ -498,6 +504,14 @@ async function removeWithUndo(video) {
   });
 }
 
+// The thin red "how much you watched" bar along the bottom of a thumbnail.
+function progressBar(video) {
+  if (!video.progressSec || !video.durationSec) return null;
+  const fill = h('i');
+  fill.style.width = `${Math.min(100, (video.progressSec / video.durationSec) * 100)}%`; // not a style attribute: page CSP may block those
+  return h('span', { class: 'prog', title: `Watched ${formatDuration(video.progressSec)}` }, fill);
+}
+
 function renderCard(video) {
   const url = watchUrl(video.id);
   const inWatchLater = video.list === LISTS.WATCH_LATER;
@@ -509,8 +523,13 @@ function renderCard(video) {
       { class: 'thumb', href: url, title: video.title },
       h('img', { src: video.thumbnail, alt: '', loading: 'lazy' }),
       video.durationSec != null
-        ? h('span', { class: 'dur', text: formatDuration(video.durationSec) })
+        ? h('span', {
+            class: 'dur',
+            text: video.progressSec ? `${formatDuration(video.timeLeftSec)} left` : formatDuration(video.durationSec),
+            title: video.progressSec ? `${formatDuration(video.durationSec)} in total` : '',
+          })
         : null,
+      progressBar(video),
     ),
     h(
       'div',
@@ -594,6 +613,7 @@ const SORT_COLS = [
   { key: 'title', label: 'Title', asc: 'title-asc', desc: 'title-desc', first: 'asc' },
   { key: 'channel', label: 'Channel', asc: 'channel-asc', desc: 'channel-desc', first: 'asc' },
   { key: 'duration', label: 'Length', asc: 'duration-asc', desc: 'duration-desc', first: 'asc' },
+  { key: 'timeLeft', label: 'Left', asc: 'left-asc', desc: 'left-desc', first: 'asc' },
   { key: 'views', label: 'Views', asc: 'views-asc', desc: 'views-desc', first: 'desc' },
   { key: 'published', label: 'Published', asc: 'published-asc', desc: 'published-desc', first: 'desc' },
   { key: 'saved', label: 'Saved', asc: 'added-asc', desc: 'added-desc', first: 'desc' },
@@ -655,6 +675,11 @@ function renderRow(video, index) {
     h('td', { class: 'c-title' }, h('a', { class: 'title', href: url, text: video.title })),
     h('td', { class: 'c-channel', text: video.channel }),
     h('td', { class: 'num', text: formatDuration(video.durationSec) }),
+    h('td', {
+      class: 'num',
+      text: video.timeLeftSec == null ? '' : formatDuration(video.timeLeftSec),
+      title: video.progressSec ? `Watched ${formatDuration(video.progressSec)}` : '',
+    }),
     h('td', { class: 'num', text: formatViews(video.views) }),
     h('td', {
       class: 'num',
@@ -846,7 +871,10 @@ for (const btn of els.viewBtns) {
 }
 
 function render() {
-  const inTab = state.videos.filter((v) => v.list === state.tab);
+  const inTab = withProgress(
+    state.videos.filter((v) => v.list === state.tab),
+    state.progress,
+  );
   const counts = {
     [LISTS.WATCH_LATER]: state.videos.filter((v) => v.list === LISTS.WATCH_LATER).length,
     [LISTS.REWATCH]: state.videos.filter((v) => v.list === LISTS.REWATCH).length,
@@ -918,7 +946,9 @@ function render() {
     headCb = null;
     els.grid.replaceChildren(emptyState(inTab.length));
   } else {
+    const scrolled = els.grid.scrollTop; // progress updates redraw while you may be scrolling: stay where you were
     els.grid.replaceChildren(...(table ? [renderTable(shown)] : shown.map(renderCard)));
+    els.grid.scrollTop = scrolled;
   }
   syncSelection();
 }
@@ -938,7 +968,7 @@ function effectiveFilters() {
 
 // A video whose value is unknown never matches a filter on that value. Say so, so a filter that
 // "shows nothing" is explained instead of looking broken.
-const FIELD_OF = { duration: 'durationSec', views: 'views', published: 'publishedAt', saved: 'addedAt' };
+const FIELD_OF = { duration: 'durationSec', timeLeft: 'timeLeftSec', views: 'views', published: 'publishedAt', saved: 'addedAt' };
 
 function hiddenByUnknown(inTab, eff) {
   const notes = [];
@@ -996,7 +1026,7 @@ function renderSummary(shown, inTabCount, hidden = []) {
     parts.push(
       h('span', {
         class: 'total',
-        title: `Adds up the length of the ${total.known} videos shown, at ${speed}x speed. A day is 24 hours and a month is 30 days.`,
+        title: `Adds up what is left to watch in the ${total.known} videos shown (a video you started counts only its remaining part), at ${speed}x speed. A day is 24 hours and a month is 30 days.`,
         text: `⏱ ${formatTotalTime(total.seconds)}${numbers} to ${verb}${speed === 1 ? '' : ` at ${speed}x`}`,
       }),
     );
@@ -1525,6 +1555,17 @@ async function logFinished(id) {
   }
 }
 
+// Remembers where you are in a saved video, for the "Time left" filter and sort.
+const trackProgress = createProgressTracker({
+  getRecord: (id) => state.videos.find((v) => v.id === id),
+  save: (id, sec) => store.setProgress(id, sec).catch(() => alive()), // most likely the extension was reloaded
+});
+
+function trackMainVideo(video, force = false) {
+  const id = parseVideoId(location.href);
+  if (id && isMainPlayerVideo(video)) trackProgress(id, video, force);
+}
+
 function maybeFinishPrompt(video) {
   const id = parseVideoId(location.href);
   if (!id || id === state.endPromptedFor || !isMainPlayerVideo(video)) return;
@@ -1538,6 +1579,7 @@ document.addEventListener(
   (e) => {
     const v = e.target;
     if (!(v instanceof HTMLVideoElement) || !alive()) return;
+    trackMainVideo(v);
     if (v.duration > 20 && v.currentTime > 0 && v.duration - v.currentTime <= 5) maybeFinishPrompt(v);
   },
   true,
@@ -1545,10 +1587,26 @@ document.addEventListener(
 document.addEventListener(
   'ended',
   (e) => {
-    if (e.target instanceof HTMLVideoElement && alive()) maybeFinishPrompt(e.target);
+    if (!(e.target instanceof HTMLVideoElement) || !alive()) return;
+    trackMainVideo(e.target, true);
+    maybeFinishPrompt(e.target);
   },
   true,
 );
+// Save the position right away when you pause or leave, instead of waiting for the next 15-second write.
+document.addEventListener(
+  'pause',
+  (e) => {
+    if (e.target instanceof HTMLVideoElement && alive()) trackMainVideo(e.target, true);
+  },
+  true,
+);
+const flushProgress = () => {
+  const video = document.querySelector('video.html5-main-video');
+  if (video && alive()) trackMainVideo(video, true);
+};
+document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flushProgress());
+window.addEventListener('pagehide', flushProgress);
 
 // ---------- routing: YouTube is a single-page app, so watch for address changes ----------
 
@@ -1608,6 +1666,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
     const p = state.prompt;
     if (p && !state.videos.some((v) => v.id === p.id && v.list === LISTS.WATCH_LATER)) dismissPrompt();
   }
+  if (changes.progress) {
+    state.progress = changes.progress.newValue || {};
+    scheduleRender();
+  }
   if (changes.settings) {
     state.settings = { ...store.DEFAULT_SETTINGS, ...(changes.settings.newValue || {}) };
     scheduleRender();
@@ -1615,7 +1677,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 (async () => {
-  [state.videos, state.settings] = await Promise.all([store.listVideos(), store.getSettings()]);
+  [state.videos, state.settings, state.progress] = await Promise.all([
+    store.listVideos(),
+    store.getSettings(),
+    store.getProgress(),
+  ]);
   render();
   handleRoute(true);
 })();

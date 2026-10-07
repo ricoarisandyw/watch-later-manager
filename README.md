@@ -13,8 +13,10 @@ Everything stays in your browser. No account, no server, no tracking.
 - **Right-click to save.** Right-click any video thumbnail or video page and choose **Add to My Watch Later**.
 - **A dialog instead of a long list.** Opens on youtube.com and replaces YouTube's own Watch Later page. Switch
   between **cards** and a **table**.
-- **Filters that fit.** Search, channel and tag, plus **Length**, **Views**, **Published** and **Saved**, each with
+- **Filters that fit.** Search, channel and tag, plus **Length**, **Time left**, **Views**, **Published** and **Saved**, each with
   presets or a **custom range** you type in (for example 5 to 20 minutes, or 10k to 1.5M views).
+- **Time left.** The extension remembers how far you got in each saved video, so you can filter or sort by what is
+  left: with 10 free minutes, a 30-minute video you already watched 22 minutes of shows up under "Under 10 min left".
 - **How long is my list?** A running total of the time to watch whatever you have filtered, such as
   `7d 9h 54m (177.9 hours · 7.4 days)`, with a playback-speed setting.
 - **Mass editing.** Tick videos (shift-click for a range, or select everything the filters show), then move,
@@ -62,7 +64,7 @@ After you change any file, press the reload icon on the extension's card, then r
 | Open my list | Go to youtube.com, or click the red **▶ My Watch Later** button, or the toolbar icon |
 | Switch view | **☰ Table / ▦ Cards** next to the filters (your choice is remembered) |
 | Filter | Use the dropdowns and search box. **Clear** resets everything |
-| Filter by an exact value | Pick **Custom range…** under Length, Views, Published or Saved, then type a from and a to. Leave one side empty for "at least" or "at most" |
+| Filter by an exact value | Pick **Custom range…** under Length, Time left, Views, Published or Saved, then type a from and a to. Leave one side empty for "at least" or "at most" |
 | Sort | Use the sort dropdown, or click a column title in the table |
 | See the total time | Read the **⏱** line under the filters. It follows your filters, and **Speed** changes it |
 

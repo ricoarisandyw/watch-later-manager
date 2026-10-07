@@ -60,11 +60,12 @@ Contents: [Saving](#1-saving-videos) · [The dialog](#2-the-dialog) · [Filters 
 
 - [x] **Search** across title, channel and tags.
 - [x] **Channel** dropdown (with counts) and **Tag** dropdown (with counts), built from the current tab.
-- [x] Four **range filters**: Length, Views, Published, Saved. Each has presets and **Custom range…**:
+- [x] Five **range filters**: Length, Time left, Views, Published, Saved. Each has presets and **Custom range…**:
 
   | Filter | Presets | Custom range typed as |
   | --- | --- | --- |
   | Length | Under 10 min · 10–30 · 30–60 · Over 1 hour | minutes (`5` to `20`, decimals allowed) |
+  | Time left | Under 5 min · 10 · 20 · 30 · 1 hour (they overlap on purpose) | minutes |
   | Views | Under 10K · 10K–100K · 100K–1M · Over 1M | `10k`, `1.5M`, `2,000` |
   | Published, Saved | Last 7 days · 30 days · 3 months · year · Older than 1 year | a date |
 
@@ -72,7 +73,7 @@ Contents: [Saving](#1-saving-videos) · [The dialog](#2-the-dialog) · [Filters 
       If "from" is larger than "to" they are swapped.
 - [x] A video whose value is **unknown never matches** an active filter on that value, and the summary line says how
       many are hidden for that reason ("88 hidden: published unknown"), so a filter that shows nothing is explained.
-- [x] **Sort**: recently or oldest saved, newest or oldest published, shortest or longest, most or least viewed,
+- [x] **Sort**: recently or oldest saved, newest or oldest published, shortest or longest, least or most time left, most or least viewed,
       title A–Z or Z–A, channel A–Z or Z–A. Missing numbers always sort last, in either direction.
 - [x] **Clear** resets every filter.
 
@@ -80,12 +81,31 @@ Contents: [Saving](#1-saving-videos) · [The dialog](#2-the-dialog) · [Filters 
 
 **"How many hours is my list?"** · `lib/filters.js`
 
-- [x] Adds up the lengths of the videos currently shown (so it follows your filters and the tab).
+- [x] Adds up what is left of the videos currently shown (so it follows your filters and the tab). A video you
+      started only counts its remaining part.
 - [x] Written in **months, days, hours and minutes**, skipping zero units: `7d 9h 54m`. A day is 24 hours and a month
       is 30 days.
 - [x] Also shown as plain numbers: `177.9 hours · 7.4 days`.
 - [x] A **playback speed** setting (1x, 1.25x, 1.5x, 1.75x, 2x) divides the total. Remembered.
 - [x] Videos with no known length are not in the total; the line says how many ("+ 3 without length").
+
+### Time left
+
+**"I only have 10 minutes"** · `lib/progress.js`, `content/progress.js`
+
+- [x] While a saved video plays on YouTube, the extension reads the player's position and remembers it. Nothing
+      extra is needed: the script already runs on youtube.com.
+- [x] **Time left** = length − position. A video you never started has its whole length left, so it also fits a
+      "Under 10 min left" filter if it is short.
+- [x] Cards show `8:12 left` on the thumbnail plus a thin red bar; the table has a sortable **Left** column.
+- [x] The position is written at most every 15 seconds, and straight away on pause, when the tab is hidden or closed,
+      and when the video ends. Reaching the last 5 seconds forgets it (the video is watched).
+- [x] Not tracked: ads (the player is playing the ad), live streams, videos under 20 seconds, and the first
+      5 seconds. A player that still shows the previous video after you navigate is ignored (its length must match
+      the saved one).
+- [x] Only watching in this browser counts. Watching on a phone or in a tab without the extension doesn't.
+- [x] Nothing is marked finished automatically: the time left just gets close to 0. The "Finished?" prompt is
+      unchanged.
 
 ## 5. Missing data
 
@@ -227,6 +247,7 @@ Stored in `chrome.storage.local`.
 | `events:YYYY-MM` | The history log for one month (a list of events) |
 | `historyMeta` | `{ count, months, backfilled }` for the log |
 | `snapshots` | `{ 'YYYY-MM-DD': { n, sec, rn } }` — waiting count, waiting seconds, rewatch count |
+| `progress` | `{ videoId: { sec, at } }` — seconds watched. Kept apart from `videos`; not part of the backup file |
 
 **A video record**
 

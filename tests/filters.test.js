@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LISTS } from '../lib/model.js';
+import { withProgress } from '../lib/progress.js';
 import {
   applyFilters,
   customRange,
@@ -255,4 +256,24 @@ test('sorting by title Z-A and by channel (no channel always last)', () => {
   assert.deepEqual(ids(sortVideos(list, 'title-desc')), ['c', 'a', 'd', 'b']);
   assert.deepEqual(ids(sortVideos(list, 'channel-asc')), ['b', 'd', 'a', 'c']);
   assert.deepEqual(ids(sortVideos(list, 'channel-desc')), ['a', 'b', 'd', 'c']); // same channel: title A-Z
+});
+
+test('time left: filter, sort and total use what is left of a started video', () => {
+  const started = withProgress(
+    [
+      v('p', { durationSec: 1800 }), // not started: 30 min left
+      v('q', { durationSec: 1800 }), // 22 min in: 8 min left
+      v('r', { durationSec: 300 }), // 5 min, not started
+      v('s', { durationSec: null }), // unknown length
+    ],
+    { q: { sec: 1320, at: 1 } },
+  );
+  assert.deepEqual(ids(applyFilters(started, { timeLeft: 'left10' })), ['q', 'r']);
+  assert.deepEqual(ids(applyFilters(started, { timeLeft: 'left5' })), []); // 5 min is not under 5 min
+  assert.deepEqual(ids(applyFilters(started, { timeLeft: 'left60' })), ['p', 'q', 'r']);
+  assert.deepEqual(ids(applyFilters(started, { timeLeft: customRange('timeLeft', '6', '8') })), ['q']);
+  assert.deepEqual(ids(sortVideos(started, 'left-asc')), ['r', 'q', 'p', 's']);
+  assert.deepEqual(ids(sortVideos(started, 'left-desc')), ['p', 'q', 'r', 's']);
+  assert.equal(totalDuration(started).seconds, 1800 + 480 + 300);
+  assert.equal(totalDuration(started).unknown, 1);
 });

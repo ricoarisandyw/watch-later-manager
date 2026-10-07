@@ -450,6 +450,7 @@ select {
 
 .vt td.num,
 .vt th.c-duration,
+.vt th.c-timeLeft,
 .vt th.c-views,
 .vt th.c-published,
 .vt th.c-saved {
@@ -688,6 +689,21 @@ select {
   color: #fff;
   font-size: 12px;
   font-weight: 500;
+}
+
+.prog {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.prog i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
 }
 
 .title {

@@ -263,3 +263,22 @@ test('a failing history write never stops a video from being saved', async () =>
     console.warn = originalWarn;
   }
 });
+
+test('progress is kept apart from the videos, forgotten on null, and dropped for removed videos', async () => {
+  await store.saveVideo(meta(1));
+  await store.saveVideo(meta(2));
+  await store.setProgress(ID(1), 120);
+  await store.setProgress(ID(2), 300);
+  await store.setProgress(ID(9), 50); // not saved: ignored
+  const p = await store.getProgress();
+  assert.deepEqual(Object.keys(p).sort(), [ID(1), ID(2)]);
+  assert.equal(p[ID(1)].sec, 120);
+  assert.equal((await store.getVideo(ID(1))).progressSec, undefined);
+
+  await store.setProgress(ID(1), null);
+  assert.deepEqual(Object.keys(await store.getProgress()), [ID(2)]);
+
+  await store.removeVideo(ID(2));
+  await store.setProgress(ID(1), 60); // the next write drops the removed video's entry
+  assert.deepEqual(Object.keys(await store.getProgress()), [ID(1)]);
+});
