@@ -51,7 +51,13 @@ async function askForHint(tabId, id) {
 const ALARM_NOTIFICATION = 'mwl-alarm-ring';
 const OFFSCREEN_URL = 'offscreen/offscreen.html';
 
+// "Needs Stop": set when the alarm goes off, cleared only when you stop it (Stop button, clicking or closing
+// the notification) or set a new one. It outlives the sound, which ends by itself after ~20 seconds, so a page
+// that opens later (next video, reloaded tab) still shows Stop instead of the time choices.
+const NEEDS_STOP_KEY = 'alarmNeedsStop';
+
 async function ringAlarm() {
+  await chrome.storage.session.set({ [NEEDS_STOP_KEY]: true }).catch(() => {});
   chrome.notifications.create(ALARM_NOTIFICATION, {
     type: 'basic',
     iconUrl: chrome.runtime.getURL('icons/icon128.png'),
@@ -75,12 +81,27 @@ async function ringAlarm() {
   }
 }
 
-async function stopAlarm() {
+// Silence the sound and the notification, but leave "needs Stop" as it is.
+async function silenceAlarm() {
   chrome.notifications.clear(ALARM_NOTIFICATION);
   try {
     if (await chrome.offscreen.hasDocument()) await chrome.offscreen.closeDocument();
   } catch {
     // already gone
+  }
+}
+
+// You dealt with it: silence it and forget that it needs Stop.
+async function stopAlarm() {
+  await chrome.storage.session.remove(NEEDS_STOP_KEY).catch(() => {});
+  await silenceAlarm();
+}
+
+async function isRinging() {
+  try {
+    return Boolean((await chrome.storage.session.get(NEEDS_STOP_KEY))[NEEDS_STOP_KEY]);
+  } catch {
+    return false;
   }
 }
 
@@ -90,17 +111,24 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.notifications.onClicked.addListener((id) => {
   if (id === ALARM_NOTIFICATION) stopAlarm();
 });
-chrome.notifications.onClosed.addListener((id) => {
-  if (id === ALARM_NOTIFICATION) stopAlarm();
+// Only when you close it yourself. On macOS a banner also "closes" by itself after a few seconds,
+// and that must not silence the sound.
+chrome.notifications.onClosed.addListener((id, byUser) => {
+  if (id === ALARM_NOTIFICATION && byUser) stopAlarm();
 });
 // The page's alarm box talks to us here (the toolbar popup uses chrome.alarms directly).
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message) return false;
   if (message.type === 'alarm-sound-done') {
-    stopAlarm();
+    silenceAlarm(); // the beeps are over, but the box keeps showing Stop until you press it
   } else if (message.type === 'alarm-get') {
-    chrome.alarms.get(ALARM_NAME).then((alarm) => sendResponse({ ringsAt: alarm ? alarm.scheduledTime : null }));
+    Promise.all([chrome.alarms.get(ALARM_NAME), isRinging()]).then(([alarm, ringing]) =>
+      sendResponse({ ringsAt: alarm ? alarm.scheduledTime : null, ringing }),
+    );
     return true; // answer comes later
+  } else if (message.type === 'alarm-stop') {
+    stopAlarm().then(() => sendResponse({}));
+    return true;
   } else if (message.type === 'alarm-start') {
     const minutes = parseCustomMinutes(message.minutes);
     if (minutes == null) {
@@ -114,7 +142,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       .then((alarm) => sendResponse({ ringsAt: alarm ? alarm.scheduledTime : null }));
     return true;
   } else if (message.type === 'alarm-cancel') {
-    chrome.alarms.clear(ALARM_NAME).then(() => sendResponse({}));
+    chrome.alarms
+      .clear(ALARM_NAME)
+      .then(() => stopAlarm())
+      .then(() => sendResponse({}));
     return true;
   }
   return false;

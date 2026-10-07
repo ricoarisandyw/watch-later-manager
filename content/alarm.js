@@ -1,4 +1,7 @@
-// The alarm box inside the "Saved in My Watch Later" notice: 2 / 3 / 5 minute buttons fill the time box, Start begins.
+// The alarm box inside the "Saved in My Watch Later" notice. It has three faces:
+//   choices   2 / 3 / 5 minute buttons fill the time box, Start begins
+//   running   a countdown, with Cancel
+//   ringing   "Time's up", with Stop. It stays until you press Stop (nothing else sends you back to the choices).
 // A page can't use chrome.alarms, so it asks the background script, which owns the alarm and rings it.
 import { PRESET_MINUTES, formatRemaining, parseCustomMinutes } from '../lib/alarm.js';
 import { h } from './dom.js';
@@ -7,6 +10,7 @@ const ask = (message) => chrome.runtime.sendMessage(message).catch(() => null); 
 
 export function createAlarmWidget() {
   let ringsAt = null; // when the running alarm goes off (ms), or null when there is none
+  let ringStart = null; // when the alarm went off and is ringing now (ms), or null
   const root = h('div', { class: 'toast-alarm' });
   const left = h('div', { class: 'alarm-left', text: '0:00' });
   const error = h('div', { class: 'alarm-error', hidden: true });
@@ -25,6 +29,7 @@ export function createAlarmWidget() {
 
   const start = async (minutes) => {
     error.hidden = true;
+    ringStart = null;
     ringsAt = Date.now() + minutes * 60_000; // show the countdown at once; the reply below makes it exact
     render();
     const reply = await ask({ type: 'alarm-start', minutes });
@@ -101,18 +106,44 @@ export function createAlarmWidget() {
       }),
     ),
   );
-  root.append(idle, running);
+  const ringing = h(
+    'div',
+    {},
+    h('div', { class: 'alarm-title', text: '⏰ Alarm' }),
+    h(
+      'div',
+      { class: 'alarm-row' },
+      h('div', { class: 'alarm-left', text: "Time's up!" }),
+      h('button', {
+        type: 'button',
+        class: 'alarm-chip solid',
+        text: '■ Stop',
+        onclick: async () => {
+          await ask({ type: 'alarm-stop' });
+          ringStart = null; // now the choices come back
+          render();
+        },
+      }),
+    ),
+  );
+  root.append(idle, running, ringing);
 
   function render() {
-    if (ringsAt != null && ringsAt <= Date.now()) ringsAt = null; // it has rung
-    idle.hidden = ringsAt != null;
+    if (ringsAt != null && ringsAt <= Date.now()) {
+      ringStart = ringsAt; // it went off
+      ringsAt = null;
+    }
+    idle.hidden = ringsAt != null || ringStart != null;
     running.hidden = ringsAt == null;
+    ringing.hidden = ringStart == null;
     if (ringsAt != null) left.textContent = formatRemaining(ringsAt - Date.now());
   }
 
   render();
   ask({ type: 'alarm-get' }).then((reply) => {
+    if (ringsAt != null || ringStart != null) return; // you already started one, or it already went off
     ringsAt = (reply && reply.ringsAt) || null;
+    ringStart = reply && !reply.ringsAt && reply.ringing ? Date.now() : null;
     render();
   });
 
