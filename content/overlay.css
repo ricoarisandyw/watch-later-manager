@@ -809,7 +809,7 @@ select {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: min(420px, calc(100vw - 40px));
+  width: min(460px, calc(100vw - 40px));
 }
 
 .toast {
@@ -858,8 +858,8 @@ select {
 }
 
 /* "Saved in My Watch Later" / "Finished this one?": meant to be impossible to miss.
-   A white card inside a glowing gradient border. The border is made of real divs (.toast-ring):
-   a conic gradient behind the white .toast-face, and a blurred copy of it as the glow. Nothing moves. */
+   A white card inside a red gradient border. The border is a real div (.toast-ring > .toast-edge):
+   a conic gradient behind the white .toast-face. Nothing moves and nothing glows. */
 
 .toast.finish {
   padding: 22px 24px 24px; /* 4px of that is the border */
@@ -874,21 +874,15 @@ select {
   inset: 0;
   z-index: 0;
   border-radius: inherit;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); /* a plain lift off the page, no glow */
   pointer-events: none;
 }
 
-.toast-edge,
-.toast-glow {
+.toast-edge {
   position: absolute;
   inset: 0;
   overflow: hidden;
   border-radius: inherit;
-}
-
-.toast-glow {
-  inset: -6px;
-  filter: blur(18px);
-  opacity: 0.75;
 }
 
 /* a square twice as wide as the card, so its corners always cover it */
@@ -898,7 +892,7 @@ select {
   left: 50%;
   width: 200%;
   aspect-ratio: 1;
-  background: conic-gradient(#ff0033, #ff8a00, #ffd400, #ff2d95, #7a3cff, #ff0033);
+  background: conic-gradient(#ff2a1f, #8f0000, #ff6a5f, #cc0000, #ff1744, #a30000, #ff2a1f); /* shades of YouTube red */
   transform: translate(-50%, -50%);
 }
 
@@ -911,8 +905,7 @@ select {
 
 .toast.finish > .toast-text,
 .toast.finish > .toast-sub,
-.toast.finish > .toast-actions,
-.toast.finish > .toast-alarm {
+.toast.finish > .toast-actions {
   position: relative;
   z-index: 1;
 }
@@ -958,18 +951,20 @@ select {
 }
 
 .toast.finish .toast-actions {
-  gap: 8px;
+  flex-wrap: nowrap; /* Should Rewatch, Remove and Continue share one line */
+  gap: 6px;
   margin-top: 16px;
 }
 
 .toast.finish .btn {
-  padding: 9px 16px;
+  padding: 8px 12px;
   border: 2px solid #d4d4d4;
   border-radius: 999px;
   background: #f5f5f5;
   color: #0f0f0f;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .toast.finish .btn:hover {
@@ -990,10 +985,99 @@ select {
 }
 
 /* the alarm: "ring me in a few minutes", for when you watch while something else is busy */
-.toast-alarm {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid #e6e6e6;
+
+/* sits right above the floating button (that is 20px from the corner and about 40px tall) */
+.alarm-dock {
+  position: fixed;
+  right: 20px;
+  bottom: 72px;
+  z-index: 2147483050;
+  display: flex;
+  justify-content: flex-end;
+  width: min(340px, calc(100vw - 40px));
+  pointer-events: none; /* only the pill itself takes clicks */
+}
+
+.fab[hidden] + .alarm-dock {
+  bottom: 20px; /* the floating button is gone while the dialog is open */
+}
+
+/* a ringing alarm stays on top of the dialog so Stop can always be pressed */
+.alarm-dock:has(.alarm-pill.ringing) {
+  z-index: 2147483300;
+}
+
+.alarm-pill {
+  pointer-events: auto;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 16px;
+  background: #fff;
+  color: #0f0f0f;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+.alarm-pill.big {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #cc0000;
+}
+
+.alarm-pill.ringing {
+  animation: alarm-pulse 1s ease-in-out infinite;
+}
+
+@keyframes alarm-pulse {
+  50% {
+    box-shadow: 0 0 0 6px rgba(204, 0, 0, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alarm-pill.ringing {
+    animation: none;
+  }
+}
+
+.alarm-bell {
+  display: block;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid #cc0000;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.alarm-bell:hover {
+  background: #fff0ef;
+}
+
+.alarm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.alarm-head .alarm-title {
+  margin: 0;
+}
+
+.alarm-close {
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: #606060;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.alarm-close:hover {
+  color: #0f0f0f;
 }
 
 .alarm-title {
@@ -1094,8 +1178,7 @@ select {
 }
 
 .toast.finish.min .toast-sub,
-.toast.finish.min .toast-actions,
-.toast.finish.min .toast-alarm {
+.toast.finish.min .toast-actions {
   display: none;
 }
 
@@ -1106,6 +1189,13 @@ select {
   height: 26px;
   font-size: 14px;
   transform: translateY(-50%);
+}
+
+/* on a narrow window the three buttons may wrap rather than get squeezed */
+@media (max-width: 520px) {
+  .toast.finish .toast-actions {
+    flex-wrap: wrap;
+  }
 }
 
 @media (max-width: 640px) {

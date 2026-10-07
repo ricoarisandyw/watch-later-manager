@@ -96,6 +96,7 @@ root.innerHTML = `
   <link rel="stylesheet" href="${chrome.runtime.getURL('content/overlay.css')}">
   <div class="root">
     <button class="fab" type="button" title="Open My Watch Later">▶ My Watch Later <span class="fab-count">0</span></button>
+    <div class="alarm-dock"></div>
     <div class="toasts" aria-live="polite"></div>
     <div class="modal" hidden>
       <div class="backdrop"></div>
@@ -181,6 +182,7 @@ const $ = (sel) => root.querySelector(sel);
 const els = {
   fab: $('.fab'),
   fabCount: $('.fab-count'),
+  alarmDock: $('.alarm-dock'),
   toasts: $('.toasts'),
   modal: $('.modal'),
   backdrop: $('.backdrop'),
@@ -313,12 +315,11 @@ function alive() {
 
 // ---------- toasts ----------
 
-// The spinning gradient border and glow of the big notice, drawn with divs behind a white face (see overlay.css).
+// The gradient border of the big notice, drawn with divs behind a white face (see overlay.css).
 function borderRing() {
   return h(
     'div',
     { class: 'toast-ring', 'aria-hidden': 'true' },
-    h('div', { class: 'toast-glow' }, h('div', { class: 'toast-spin' })),
     h('div', { class: 'toast-edge' }, h('div', { class: 'toast-spin' })),
     h('div', { class: 'toast-face' }),
   );
@@ -334,7 +335,6 @@ function showToast({
   minimizable = false, // adds a button that shrinks the notice to a small pill
   minimized = false, // start as a pill
   onMinimize = () => {}, // called with true / false when the button is pressed
-  extra = null, // an element shown under the buttons
 }) {
   const el = h(
     'div',
@@ -409,7 +409,7 @@ function showToast({
             class: `btn small${a.primary ? ' primary' : ''}`,
             text: a.label,
             onclick: async () => {
-              dismiss();
+              if (!a.keepOpen) dismiss(); // most buttons end the notice; a few (Continue) leave it up
               await a.run();
             },
           }),
@@ -417,8 +417,6 @@ function showToast({
       ),
     );
   }
-
-  if (extra) el.append(extra);
 
   els.toasts.append(el);
   arm();
@@ -1246,6 +1244,7 @@ function closeDialog() {
   els.fab.hidden = false;
 }
 
+els.alarmDock.append(createAlarmWidget()); // its own pill: answering or leaving a prompt never removes it
 els.fab.addEventListener('click', () => openDialog());
 els.close.addEventListener('click', closeDialog);
 els.backdrop.addEventListener('click', closeDialog);
@@ -1550,7 +1549,6 @@ async function showSavedPrompt(id, kind) {
     sub: `📺 ${record.title}`,
     timeout: 0, // stays until you choose
     variant: 'finish',
-    extra: finished ? null : createAlarmWidget(), // the alarm belongs to the opening prompt, not the "finished" one
     minimizable: true,
     // the "finished" moment always opens fully; the opening prompt follows your last choice
     minimized: !finished && Boolean(state.settings.promptMinimized),
@@ -1579,6 +1577,7 @@ async function showSavedPrompt(id, kind) {
         : [
             {
               label: `▶ Continue from ${formatDuration(resume)}`,
+              keepOpen: true, // you are still watching, so the notice stays
               run: async () => {
                 choose('continue');
                 continueVideo(resume, record);

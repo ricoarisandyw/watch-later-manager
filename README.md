@@ -27,8 +27,10 @@ Everything stays in your browser. No account, no server, no tracking.
   YouTube's own copy (with a backup and a typed confirmation).
 - **Stats.** How many videos you added and finished, how fast, how long until the list would be empty, which
   lengths and channels you actually finish, your oldest unfinished videos, and more.
-- **Alarm.** Watching YouTube while you wait for something to finish? Pick **2, 3 or 5
-  min**, or type your own, in the **Saved in My Watch Later** notice or the toolbar popup. When time is up you get a notification and a few beeps; click the notification to stop it.
+- **Alarm.** Watching YouTube while you wait for something to finish? Click the **⏰** above the
+  **My Watch Later** button (or use the toolbar popup) and pick **2, 3 or 5 min**, or type your own. The alarm stays
+  on screen while you answer the notice or move to another video. When time is up you get a notification, a few
+  beeps and a pulsing **Time's up!** with **Stop** and **+5 min**.
 - **Tags, backup and dark mode.** Export and import your list and history as a file. The dialog follows YouTube's
   dark theme and hides itself in fullscreen.
 

@@ -13,7 +13,7 @@ class FakeEl {
     this.value = '';
     this.hidden = false;
     this.isConnected = false;
-    this.classList = { toggle() {} };
+    this.classList = { toggle: (name, on) => (this.classes ||= new Map()).set(name, Boolean(on)) };
   }
   setAttribute(k, v) {
     this.attrs[k] = String(v);
@@ -33,7 +33,14 @@ class FakeEl {
     return this._text;
   }
 }
-globalThis.document = { createElement: (tag) => new FakeEl(tag), createElementNS: (_n, tag) => new FakeEl(tag) };
+const docListeners = {};
+globalThis.document = {
+  createElement: (tag) => new FakeEl(tag),
+  createElementNS: (_n, tag) => new FakeEl(tag),
+  addEventListener: (type, fn) => (docListeners[type] ||= []).push(fn),
+  visibilityState: 'visible',
+  title: 'Some video - YouTube',
+};
 
 let now = 1_000_000;
 Date.now = () => now;
@@ -76,16 +83,13 @@ const button = (root, label) => walk(root).find((n) => n.tagName === 'button' &&
 const click = async (el) => {
   for (const fn of el.listeners.click) await fn();
 };
-// which of the three faces is showing
+// which of the faces is showing: the root holds the small button, the choices, the countdown and the ringing face
 const face = (root) => {
-  const [idle, running, ringing] = root.children;
-  return [idle, running, ringing].map((p) => !p.hidden).join() === 'true,false,false'
-    ? 'choices'
-    : [idle, running, ringing].map((p) => !p.hidden).join() === 'false,true,false'
-      ? 'running'
-      : [idle, running, ringing].map((p) => !p.hidden).join() === 'false,false,true'
-        ? 'ringing'
-        : `mixed(${[idle, running, ringing].map((p) => !p.hidden)})`;
+  const [idle, choices, running, ringing] = root.children;
+  const shown = [idle, choices, running, ringing].map((p) => !p.hidden);
+  const names = ['idle', 'choices', 'running', 'ringing'];
+  assert.equal(shown.filter(Boolean).length, 1, `exactly one face at a time, got ${shown}`);
+  return names[shown.indexOf(true)];
 };
 const tick = async (ms) => {
   for (let t = 0; t < ms; t += 500) {
@@ -94,11 +98,20 @@ const tick = async (ms) => {
     await new Promise((r) => setImmediate(r));
   }
 };
+const reset = () => {
+  bg.alarmAt = null;
+  bg.ringing = false;
+  document.title = 'Some video - YouTube';
+};
 
-test('the alarm shows the choices again only after Stop, never by itself', async () => {
+test('the alarm is a small button until you open it, and goes back to one after Stop, never by itself', async () => {
+  reset();
   const root = createAlarmWidget();
   root.isConnected = true;
   await tick(500);
+  assert.equal(face(root), 'idle');
+
+  await click(walk(root).find((n) => n.tagName === 'button' && n.attrs['aria-label'] === 'Set an alarm'));
   assert.equal(face(root), 'choices');
 
   await click(button(root, '2 min'));
@@ -111,24 +124,65 @@ test('the alarm shows the choices again only after Stop, never by itself', async
   assert.equal(face(root), 'running');
   await tick(1_000); // 2:00 is up
   assert.equal(face(root), 'ringing');
+  assert.match(document.title, /^⏰ Time's up! Some video/);
 
   await tick(10 * 60_000); // ten minutes of nobody pressing Stop
   assert.equal(face(root), 'ringing');
 
   await click(button(root, '■ Stop'));
-  assert.equal(face(root), 'choices');
+  assert.equal(face(root), 'idle');
+  assert.equal(document.title, 'Some video - YouTube');
 });
 
-test('a box opened while the alarm still needs Stop (next video, reloaded tab) shows Stop, not the choices', async () => {
+test('Cancel puts the small button back', async () => {
+  reset();
+  const root = createAlarmWidget();
+  root.isConnected = true;
+  await tick(500);
+  bg.alarmAt = now + 60_000;
+  docListeners.visibilitychange.forEach((fn) => fn()); // you come back to this tab: it notices the alarm set elsewhere
+  await tick(500);
+  assert.equal(face(root), 'running');
+  await click(button(root, 'Cancel'));
+  assert.equal(face(root), 'idle');
+});
+
+test('+5 min while ringing silences it and starts a new countdown', async () => {
+  reset();
+  bg.alarmAt = now - 1000;
+  const root = createAlarmWidget();
+  root.isConnected = true;
+  await tick(500);
+  assert.equal(face(root), 'ringing');
+  await click(button(root, '+5 min'));
+  assert.equal(face(root), 'running');
+  assert.equal(bg.ringing, false);
+  assert.equal(document.title, 'Some video - YouTube');
+});
+
+test('a box opened while the alarm still needs Stop (next video, reloaded tab) shows Stop, not the button', async () => {
+  reset();
   bg.alarmAt = now - 1000; // went off a moment ago and nobody has pressed Stop
   const root = createAlarmWidget();
   root.isConnected = true;
   await tick(500);
   assert.equal(face(root), 'ringing');
   await click(button(root, '■ Stop'));
-  assert.equal(face(root), 'choices');
+  assert.equal(face(root), 'idle');
   const again = createAlarmWidget();
   again.isConnected = true;
   await tick(500);
-  assert.equal(face(again), 'choices'); // and it stays stopped
+  assert.equal(face(again), 'idle'); // and it stays stopped
+});
+
+test('a ringing pill clears itself when the alarm was stopped somewhere else', async () => {
+  reset();
+  bg.alarmAt = now - 1000;
+  const root = createAlarmWidget();
+  root.isConnected = true;
+  await tick(500);
+  assert.equal(face(root), 'ringing');
+  bg.ringing = false; // stopped from the notification
+  await tick(8_000);
+  assert.equal(face(root), 'idle');
 });
