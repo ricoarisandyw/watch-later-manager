@@ -315,6 +315,91 @@ select {
   color: var(--bg);
 }
 
+/* ---------- "Pick one for me" ---------- */
+
+.pick {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin: 0 20px 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.pick-thumb {
+  flex: none;
+  width: 176px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.pick-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pick-body {
+  min-width: 0;
+}
+
+.pick-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pick-title {
+  display: -webkit-box;
+  margin: 2px 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pick-title:hover {
+  text-decoration: underline;
+}
+
+.pick-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.pick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pick-actions .btn {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pick-actions .btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+@media (max-width: 520px) {
+  .pick-thumb {
+    display: none;
+  }
+}
+
 /* ---------- bulk bar ---------- */
 
 .bulk {

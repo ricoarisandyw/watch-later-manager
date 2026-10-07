@@ -22,6 +22,7 @@ import {
   formatHours,
   formatTotalTime,
   formatViews,
+  pickRandom,
   sortVideos,
   totalDuration,
   uniqueChannels,
@@ -75,6 +76,7 @@ const state = {
   endPromptedFor: null, // the "Finished?" prompt shows once per video
   prompt: null, // { id, dismiss } of the Should Rewatch / Remove prompt that is on screen
   hint: null,
+  pickId: null, // the video the 🎲 button suggested (its panel closes when the filters no longer show it)
   showCoverage: false,
   stats: { events: [], snapshots: {}, loaded: false }, // the history, read when the Stats tab opens
   statsRange: '30d',
@@ -125,6 +127,7 @@ root.innerHTML = `
         <div class="subbar">
           <span class="result"></span>
           <span class="subbar-actions">
+            <button type="button" class="btn pick-btn" title="Suggests a random video from what the filters show">🎲 Pick one for me</button>
             <label class="speed">Speed <select class="f-speed" aria-label="Playback speed"></select></label>
             <button type="button" class="btn data-check">Data check</button>
             <button type="button" class="btn refresh" hidden></button>
@@ -132,6 +135,7 @@ root.innerHTML = `
             <button type="button" class="btn danger wipe" hidden>Remove all from YouTube Watch Later…</button>
           </span>
         </div>
+        <div class="pick" hidden></div>
         <div class="bulk" hidden>
           <strong class="b-count">None selected</strong>
           <button type="button" class="btn small b-sel-all">Select all filtered</button>
@@ -183,6 +187,8 @@ const els = {
   fab: $('.fab'),
   fabCount: $('.fab-count'),
   alarmDock: $('.alarm-dock'),
+  pick: $('.pick'),
+  pickBtn: $('.pick-btn'),
   toasts: $('.toasts'),
   modal: $('.modal'),
   backdrop: $('.backdrop'),
@@ -908,6 +914,7 @@ function render() {
   for (const el of [els.toolbar, els.ranges, els.subbar]) el.hidden = statsMode;
   if (statsMode) {
     els.bulk.hidden = true;
+    els.pick.hidden = true;
     els.coverage.hidden = true;
     els.grid.hidden = true;
     renderStatsTab();
@@ -943,6 +950,7 @@ function render() {
   renderSummary(shown, inTab.length, hiddenByUnknown(inTab, eff));
   renderRefreshButton();
   renderCoverage();
+  renderPick(shown);
 
   // Ticked rows always stay a subset of what is shown, so a bulk action can never touch a video
   // you can't see (changing a filter or switching tab unticks the rows that disappear).
@@ -965,6 +973,63 @@ function render() {
     els.grid.scrollTop = scrolled;
   }
   syncSelection();
+}
+
+// "Pick one for me": a random video from what the filters show, so "I have 20 minutes" is just the Time left
+// filter plus this button. The panel closes by itself once the filters no longer show that video.
+function renderPick(shown) {
+  els.pickBtn.disabled = !shown.length;
+  const video = shown.find((v) => v.id === state.pickId);
+  els.pick.hidden = !video;
+  if (!video) {
+    state.pickId = null;
+    return;
+  }
+  const url = watchUrl(video.id);
+  const length =
+    video.durationSec == null
+      ? 'Length unknown'
+      : video.progressSec
+        ? `${formatDuration(video.timeLeftSec)} left of ${formatDuration(video.durationSec)}`
+        : formatDuration(video.durationSec);
+  els.pick.replaceChildren(
+    h('a', { class: 'pick-thumb', href: url, title: video.title }, h('img', { src: video.thumbnail, alt: '', loading: 'lazy' })),
+    h(
+      'div',
+      { class: 'pick-body' },
+      h('div', { class: 'pick-label', text: '🎲 How about this one?' }),
+      h('a', { class: 'pick-title', href: url, text: video.title }),
+      h('div', { class: 'pick-meta', text: [video.channel, length].filter(Boolean).join(' · ') }),
+      h(
+        'div',
+        { class: 'pick-actions' },
+        h('a', { class: 'btn primary', href: url, text: '▶ Watch now' }),
+        h('button', { type: 'button', class: 'btn', text: '🎲 Another', onclick: pickAnother }),
+        h('button', {
+          type: 'button',
+          class: 'btn',
+          text: '✕',
+          title: 'Close',
+          'aria-label': 'Close',
+          onclick: () => {
+            state.pickId = null;
+            render();
+          },
+        }),
+      ),
+    ),
+  );
+}
+
+function pickAnother() {
+  const inTab = withProgress(
+    state.videos.filter((v) => v.list === state.tab),
+    state.progress,
+  );
+  const shown = applyFilters(inTab, effectiveFilters());
+  const video = pickRandom(shown, state.pickId);
+  state.pickId = video ? video.id : null;
+  render();
 }
 
 // What applyFilters needs: the tab, plus each range as a preset key or the typed custom range.
@@ -1266,6 +1331,7 @@ for (const key of ['channel', 'tag', 'sort']) {
   });
 }
 els.clear.addEventListener('click', clearFilters);
+els.pickBtn.addEventListener('click', pickAnother);
 
 // Esc closes the dialog (but not while you are typing a new tag on a card: there it cancels the tag).
 window.addEventListener(

@@ -76,6 +76,9 @@ Contents: [Saving](#1-saving-videos) · [The dialog](#2-the-dialog) · [Filters 
 - [x] **Sort**: recently or oldest saved, newest or oldest published, shortest or longest, least or most time left, most or least viewed,
       title A–Z or Z–A, channel A–Z or Z–A. Missing numbers always sort last, in either direction.
 - [x] **Clear** resets every filter.
+- [x] **🎲 Pick one for me** suggests a random video from what the filters show (so *Time left* plus this button is
+      "I have 20 minutes"). The panel offers **Watch now** and **Another** (never the same one twice in a row), and
+      closes itself when the filters stop showing that video. The button is disabled when nothing matches.
 
 ## 4. Time to finish
 

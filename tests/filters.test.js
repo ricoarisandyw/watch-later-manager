@@ -11,6 +11,7 @@ import {
   formatHours,
   formatTotalTime,
   formatViews,
+  pickRandom,
   sortVideos,
   totalDuration,
   uniqueChannels,
@@ -276,4 +277,14 @@ test('time left: filter, sort and total use what is left of a started video', ()
   assert.deepEqual(ids(sortVideos(started, 'left-desc')), ['p', 'q', 'r', 's']);
   assert.equal(totalDuration(started).seconds, 1800 + 480 + 300);
   assert.equal(totalDuration(started).unknown, 1);
+});
+
+test('pickRandom picks from the list, never the one just shown, and copes with tiny lists', () => {
+  assert.equal(pickRandom([], null), null);
+  assert.equal(pickRandom([videos[0]], 'a').id, 'a'); // the only one left may repeat
+  const three = videos.slice(0, 3);
+  assert.equal(pickRandom(three, null, () => 0).id, 'a');
+  assert.equal(pickRandom(three, null, () => 0.99999).id, 'c');
+  for (const r of [0, 0.3, 0.5, 0.99999]) assert.notEqual(pickRandom(three, 'b', () => r).id, 'b');
+  assert.equal(pickRandom(three, null, () => 1).id, 'c'); // a random() of exactly 1 stays in range
 });

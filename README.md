@@ -17,6 +17,8 @@ Everything stays in your browser. No account, no server, no tracking.
   presets or a **custom range** you type in (for example 5 to 20 minutes, or 10k to 1.5M views).
 - **Time left.** The extension remembers how far you got in each saved video, so you can filter or sort by what is
   left: with 10 free minutes, a 30-minute video you already watched 22 minutes of shows up under "Under 10 min left".
+- **Pick one for me.** Can't decide what to watch? **🎲 Pick one for me** suggests a random video from whatever the
+  filters show. Set *Time left* to "Under 20 min left" first and it becomes "I have 20 minutes". **Another** rolls again.
 - **How long is my list?** A running total of the time to watch whatever you have filtered, such as
   `7d 9h 54m (177.9 hours · 7.4 days)`, with a playback-speed setting.
 - **Mass editing.** Tick videos (shift-click for a range, or select everything the filters show), then move,
