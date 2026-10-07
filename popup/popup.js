@@ -1,6 +1,9 @@
 import { ALARM_NAME, formatRemaining, parseCustomMinutes } from '../lib/alarm.js';
 import { LISTS } from '../lib/model.js';
 import { listVideos } from '../lib/storage.js';
+import { hydrateIcons } from '../lib/icons.js';
+
+hydrateIcons(document);
 
 async function showCounts() {
   const videos = await listVideos();

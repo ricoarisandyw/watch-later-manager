@@ -57,6 +57,26 @@ select {
   color: inherit;
 }
 
+/* icons from lib/icons.js: as tall as the text, with a gap when a label follows */
+
+.ico {
+  width: 1.1em;
+  height: 1.1em;
+  margin-right: 0.4em;
+  vertical-align: -0.18em;
+  flex: none;
+}
+
+.ico.solo {
+  margin-right: 0;
+}
+
+.ico.sort-arrow {
+  width: 0.9em;
+  height: 0.9em;
+  margin: 0 0 0 0.2em;
+}
+
 /* ---------- floating button ---------- */
 
 .fab {
@@ -1125,16 +1145,22 @@ select {
 }
 
 .alarm-bell {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 44px;
   height: 44px;
   padding: 0;
   border: 2px solid #cc0000;
   border-radius: 50%;
   background: #fff;
-  font-size: 20px;
-  line-height: 1;
+  color: #cc0000;
   cursor: pointer;
+}
+
+.alarm-bell .ico {
+  width: 22px;
+  height: 22px;
 }
 
 .alarm-bell:hover {
@@ -1572,9 +1598,16 @@ select {
 }
 
 .st-icon {
+  display: inline-flex;
+  flex: none;
+  justify-content: center;
   width: 26px;
-  text-align: center;
-  font-size: 17px;
+}
+
+.st-icon .ico {
+  width: 18px;
+  height: 18px;
+  margin: 0;
 }
 
 .st-text {

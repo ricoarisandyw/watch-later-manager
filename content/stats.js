@@ -1,4 +1,4 @@
-// The "📊 Stats" tab. Charts are plain SVG; text always wears the text colours and only the marks
+// The "Stats" tab. Charts are plain SVG; text always wears the text colours and only the marks
 // (bars, line, dots) carry the series colours: blue = added, orange = finished.
 import {
   RANGES,
@@ -17,6 +17,7 @@ import { formatDate, formatTotalTime, totalDuration } from '../lib/filters.js';
 import { LISTS } from '../lib/model.js';
 import { MAX_EVENTS } from '../lib/events.js';
 import { h, s } from './dom.js';
+import { icon } from '../lib/icons.js';
 
 // Whole-number axis: at most 4 steps, ending on a round number. niceScale(7) -> { step: 2, top: 8 }.
 export function niceScale(max) {
@@ -443,7 +444,7 @@ export function renderStats(ctx) {
           h(
             'li',
             { class: `st-insight tone-${i.tone}` },
-            h('span', { class: 'st-icon', text: i.icon, 'aria-hidden': 'true' }),
+            h('span', { class: 'st-icon', 'aria-hidden': 'true' }, icon(i.icon, 'solo')),
             h('span', { class: 'st-text', text: i.text }),
             i.action
               ? h('button', {

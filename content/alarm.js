@@ -1,17 +1,18 @@
 // The alarm pill, bottom right above the "My Watch Later" button. It lives on its own, so answering or leaving
 // the "Saved in My Watch Later" notice never takes it away. It has four faces:
-//   idle      a small ⏰ button (nothing is set)
+//   idle      a small bell button (nothing is set)
 //   choices   2 / 3 / 5 minute buttons fill the time box, Start begins
 //   running   a countdown, with Cancel
 //   ringing   "Time's up!", with Stop and +5 min. It stays until you deal with it.
 // A page can't use chrome.alarms, so it asks the background script, which owns the alarm and rings it.
 import { PRESET_MINUTES, formatRemaining, parseCustomMinutes } from '../lib/alarm.js';
 import { h } from './dom.js';
+import { icon } from '../lib/icons.js';
 
 const ask = (message) => chrome.runtime.sendMessage(message).catch(() => null); // null: extension was reloaded
 
 const SNOOZE_MINUTES = 5;
-const RINGING_TITLE = "⏰ Time's up! ";
+const RINGING_TITLE = "⏰ Time's up! "; // the one emoji left: a tab title can only hold text
 const SYNC_MS = 4000; // how often a running or ringing alarm is checked against the background script
 const SYNC_GRACE_MS = 3000; // the background script needs a moment to note that the alarm rang
 
@@ -85,37 +86,43 @@ export function createAlarmWidget() {
     }
   });
 
-  const idle = h('button', {
-    type: 'button',
-    class: 'alarm-bell',
-    text: '⏰',
-    title: 'Set an alarm',
-    'aria-label': 'Set an alarm',
-    onclick: () => {
-      open = true;
-      render();
-      input.focus();
+  const idle = h(
+    'button',
+    {
+      type: 'button',
+      class: 'alarm-bell',
+      title: 'Set an alarm',
+      'aria-label': 'Set an alarm',
+      onclick: () => {
+        open = true;
+        render();
+        input.focus();
+      },
     },
-  });
+    icon('alarm-clock', 'solo'),
+  );
   const choices = h(
     'div',
     { class: 'alarm-face' },
     h(
       'div',
       { class: 'alarm-head' },
-      h('div', { class: 'alarm-title', text: '⏰ Alarm' }),
-      h('button', {
-        type: 'button',
-        class: 'alarm-close',
-        text: '✕',
-        title: 'Close',
-        'aria-label': 'Close',
-        onclick: () => {
-          open = false;
-          error.hidden = true;
-          render();
+      h('div', { class: 'alarm-title' }, icon('alarm-clock'), 'Alarm'),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'alarm-close',
+          title: 'Close',
+          'aria-label': 'Close',
+          onclick: () => {
+            open = false;
+            error.hidden = true;
+            render();
+          },
         },
-      }),
+        icon('x', 'solo'),
+      ),
     ),
     h(
       'div',
@@ -130,7 +137,7 @@ export function createAlarmWidget() {
   const running = h(
     'div',
     { class: 'alarm-face' },
-    h('div', { class: 'alarm-title', text: '⏰ Alarm rings in' }),
+    h('div', { class: 'alarm-title' }, icon('alarm-clock'), 'Alarm rings in'),
     h(
       'div',
       { class: 'alarm-row' },
@@ -151,21 +158,25 @@ export function createAlarmWidget() {
   const ringing = h(
     'div',
     { class: 'alarm-face' },
-    h('div', { class: 'alarm-title', text: "⏰ Time's up!" }),
+    h('div', { class: 'alarm-title' }, icon('alarm-clock'), "Time's up!"),
     h(
       'div',
       { class: 'alarm-row' },
-      h('button', {
-        type: 'button',
-        class: 'alarm-chip solid',
-        text: '■ Stop',
-        onclick: async () => {
-          await ask({ type: 'alarm-stop' });
-          ringStart = null;
-          open = false; // back to the small button, not to the choices
-          render();
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'alarm-chip solid',
+          onclick: async () => {
+            await ask({ type: 'alarm-stop' });
+            ringStart = null;
+            open = false; // back to the small button, not to the choices
+            render();
+          },
         },
-      }),
+        icon('stop'),
+        'Stop',
+      ),
       h('button', {
         type: 'button',
         class: 'alarm-chip',

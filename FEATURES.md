@@ -37,17 +37,17 @@ Contents: [Saving](#1-saving-videos) · [The dialog](#2-the-dialog) · [Filters 
 **The main screen** · `content/overlay.js`, `content/overlay.css`
 
 - [x] Lives in a **shadow DOM** so YouTube's styles can't touch it, and so it can't break YouTube's layout.
-- [x] A floating button **▶ My Watch Later** with the number of waiting videos, on every YouTube page.
+- [x] A floating button **My Watch Later** with the number of waiting videos, on every YouTube page.
 - [x] Opens on its own on the youtube.com home page (optional), and in place of YouTube's own Watch Later page
       (`/playlist?list=WL`, optional). Closing it shows YouTube's original list as an escape hatch.
 - [x] Also opens from the toolbar popup. If no YouTube tab is open it opens one (`?mwl=1`, which is then removed
       from the address).
-- [x] Two tabs, **Watch Later** and **Should Rewatch**, each with a count, plus a **📊 Stats** tab.
+- [x] Two tabs, **Watch Later** and **Should Rewatch**, each with a count, plus a **Stats** tab.
 - [x] **Cards view**: thumbnail with length, title, channel, views, published date, tag chips, and buttons.
 - [x] **Table view**: checkbox, thumbnail, title, channel, length, views, published, saved, tags, row buttons.
       Click a column title to sort; click again to flip.
 - [x] Your view choice is remembered. The default is cards.
-- [x] Clicking a video opens it on YouTube. Esc, the ✕ button or the backdrop closes the dialog.
+- [x] Clicking a video opens it on YouTube. Esc, the close (X) button or the backdrop closes the dialog.
 - [x] Estimated dates are shown as `~Mar 2023`; hovering a card shows when it was published and saved.
 - [x] Friendly empty states ("Your Watch Later list is empty", "No videos match these filters" with a Clear button).
 - [x] **Dark mode** follows YouTube's own theme.
@@ -76,7 +76,7 @@ Contents: [Saving](#1-saving-videos) · [The dialog](#2-the-dialog) · [Filters 
 - [x] **Sort**: recently or oldest saved, newest or oldest published, shortest or longest, least or most time left, most or least viewed,
       title A–Z or Z–A, channel A–Z or Z–A. Missing numbers always sort last, in either direction.
 - [x] **Clear** resets every filter.
-- [x] **🎲 Pick one for me** suggests a random video from what the filters show (so *Time left* plus this button is
+- [x] **Pick one for me** suggests a random video from what the filters show (so *Time left* plus this button is
       "I have 20 minutes"). The panel offers **Watch now** and **Another** (never the same one twice in a row), and
       closes itself when the filters stop showing that video. The button is disabled when nothing matches.
 
@@ -151,11 +151,11 @@ Contents: [Saving](#1-saving-videos) · [The dialog](#2-the-dialog) · [Filters 
 
 **A second list, and a nudge at the right moment** · `content/overlay.js`
 
-- [x] **↻ Should Rewatch** moves a video to the second tab; **↩ Back to Watch Later** moves it back (with Undo).
+- [x] **Should Rewatch** moves a video to the second tab; **Back to Watch Later** moves it back (with Undo).
 - [x] When you open a video that is in your Watch Later list, a **red prompt** appears with
-      **🔁 Should Rewatch · 🗑️ Remove**, and **▶ Continue from 12:34** when part of the video was watched
+      **Should Rewatch · Remove**, and **Continue from 12:34** when part of the video was watched
       (it seeks the player to the saved position minus 5 seconds, never backwards). It stays until you choose.
-- [x] It comes back as **"🎉 Finished this one?"** in the last 5 seconds (or when the video ends), once per video.
+- [x] It comes back as **"Finished this one?"** in the last 5 seconds (or when the video ends), once per video.
 - [x] It only reacts to the main player: not hover previews, and not ads.
 - [x] **Minimize** button shrinks it to a small pill; click the pill to open it. The choice is remembered. The "finished"
       version always opens full size.
@@ -291,6 +291,8 @@ These are the decisions that made the extension trustworthy. They are cheap to b
 10. **Say "not enough data" instead of inventing a number**, in every insight.
 11. **Keep the logic pure and testable.** Filtering, history maths and insights are plain functions with no browser
     code, and storage is tested with an in-memory stand-in.
+12. **Icons are SVG, never emoji.** One small set in `lib/icons.js` takes the text colour, so it follows light and
+    dark mode and looks the same on every system. A test fails if an emoji sneaks back into a page.
 
 ## Suggested build order
 

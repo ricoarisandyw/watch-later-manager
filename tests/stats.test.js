@@ -56,6 +56,9 @@ globalThis.document = {
 const { renderStats, niceScale, barPath } = await import('../content/stats.js');
 
 const DAY = 86_400_000;
+// the charts are <svg>s too, so the small icons (class "ico") are not counted
+const isChart = (n) => n.tagName === 'svg' && !/\bico\b/.test((n.attrs && n.attrs.class) || '');
+
 const NOW = new Date(2025, 5, 20, 12).getTime();
 const ev = (type, id, t, extra = {}) => ({ t, type, id, ...extra });
 
@@ -114,7 +117,7 @@ function sampleCtx(over = {}) {
 test('an empty history shows a friendly message and no charts', () => {
   const root = renderStats(sampleCtx({ events: [], snapshots: {} }));
   assert.match(textOf(root), /No history yet/);
-  assert.equal(find(root, (n) => n.tagName === 'svg').length, 0);
+  assert.equal(find(root, isChart).length, 0);
 });
 
 test('the Stats tab renders tiles, both charts, insights and breakdowns without broken numbers', () => {
@@ -135,7 +138,7 @@ test('the Stats tab renders tiles, both charts, insights and breakdowns without 
   assert.equal(tiles['Finish rate'], '42%'); // 5 of 12
 
   // two charts (bars + line), a legend with both series, and a table version of each
-  assert.equal(find(root, (n) => n.tagName === 'svg').length, 2);
+  assert.equal(find(root, isChart).length, 2);
   assert.match(text, /Added vs finished/);
   assert.match(text, /List size over time/);
   assert.equal(find(root, (n) => n.tagName === 'details').length, 2);
@@ -162,7 +165,7 @@ test('the Stats tab renders tiles, both charts, insights and breakdowns without 
 test('every time range renders, and the bar step follows the range', () => {
   for (const range of ['7d', '30d', '90d', '1y', 'all']) {
     const root = renderStats(sampleCtx({ range }));
-    assert.equal(find(root, (n) => n.tagName === 'svg').length >= 1, true, range);
+    assert.equal(find(root, isChart).length >= 1, true, range);
   }
   const hits = (range) => find(renderStats(sampleCtx({ range })), (n) => hasClass(n, 'hit')).length;
   assert.equal(hits('7d'), 7); // one bar group per day
@@ -194,7 +197,7 @@ test('the "Review in list" button is offered for old unfinished videos', () => {
 test('the line chart asks for more history when there is only one day', () => {
   const root = renderStats(sampleCtx({ snapshots: {} }));
   // only today's live point exists, so no line chart yet
-  assert.equal(find(root, (n) => n.tagName === 'svg').length, 1);
+  assert.equal(find(root, isChart).length, 1);
   assert.match(textOf(root), /Needs at least two days of history/);
 });
 

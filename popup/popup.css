@@ -209,3 +209,16 @@ label.row small {
 .status.error {
   color: var(--accent);
 }
+
+/* icons from lib/icons.js: as tall as the text, with a gap when a label follows */
+.ico {
+  width: 1.1em;
+  height: 1.1em;
+  margin-right: 0.4em;
+  vertical-align: -0.18em;
+  flex: none;
+}
+
+.ico.solo {
+  margin-right: 0;
+}

@@ -61,12 +61,12 @@ async function ringAlarm() {
   chrome.notifications.create(ALARM_NOTIFICATION, {
     type: 'basic',
     iconUrl: chrome.runtime.getURL('icons/icon128.png'),
-    title: "⏰ Time's up",
+    title: "Time's up",
     message: 'Your alarm went off. Click to stop it.',
     priority: 2,
     requireInteraction: true,
   });
-  flashBadge('⏰', '#cc0000');
+  flashBadge('!', '#cc0000');
   try {
     if (!(await chrome.offscreen.hasDocument())) {
       await chrome.offscreen.createDocument({

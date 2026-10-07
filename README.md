@@ -17,7 +17,7 @@ Everything stays in your browser. No account, no server, no tracking.
   presets or a **custom range** you type in (for example 5 to 20 minutes, or 10k to 1.5M views).
 - **Time left.** The extension remembers how far you got in each saved video, so you can filter or sort by what is
   left: with 10 free minutes, a 30-minute video you already watched 22 minutes of shows up under "Under 10 min left".
-- **Pick one for me.** Can't decide what to watch? **🎲 Pick one for me** suggests a random video from whatever the
+- **Pick one for me.** Can't decide what to watch? **Pick one for me** suggests a random video from whatever the
   filters show. Set *Time left* to "Under 20 min left" first and it becomes "I have 20 minutes". **Another** rolls again.
 - **How long is my list?** A running total of the time to watch whatever you have filtered, such as
   `7d 9h 54m (177.9 hours · 7.4 days)`, with a playback-speed setting.
@@ -29,7 +29,7 @@ Everything stays in your browser. No account, no server, no tracking.
   YouTube's own copy (with a backup and a typed confirmation).
 - **Stats.** How many videos you added and finished, how fast, how long until the list would be empty, which
   lengths and channels you actually finish, your oldest unfinished videos, and more.
-- **Alarm.** Watching YouTube while you wait for something to finish? Click the **⏰** above the
+- **Alarm.** Watching YouTube while you wait for something to finish? Click the **alarm clock icon** above the
   **My Watch Later** button (or use the toolbar popup) and pick **2, 3 or 5 min**, or type your own. The alarm stays
   on screen while you answer the notice or move to another video. When time is up you get a notification, a few
   beeps and a pulsing **Time's up!** with **Stop** and **+5 min**.
@@ -67,12 +67,12 @@ After you change any file, press the reload icon on the extension's card, then r
 | --- | --- |
 | Save a video | Right-click a thumbnail (or a video page) → **Add to My Watch Later** |
 | Tag it right away | Type in the small box in the "Saved" notice and press Enter |
-| Open my list | Go to youtube.com, or click the red **▶ My Watch Later** button, or the toolbar icon |
-| Switch view | **☰ Table / ▦ Cards** next to the filters (your choice is remembered) |
+| Open my list | Go to youtube.com, or click the red **My Watch Later** button, or the toolbar icon |
+| Switch view | **Table / Cards** next to the filters (your choice is remembered) |
 | Filter | Use the dropdowns and search box. **Clear** resets everything |
 | Filter by an exact value | Pick **Custom range…** under Length, Time left, Views, Published or Saved, then type a from and a to. Leave one side empty for "at least" or "at most" |
 | Sort | Use the sort dropdown, or click a column title in the table |
-| See the total time | Read the **⏱** line under the filters. It follows your filters, and **Speed** changes it |
+| See the total time | Read the **time to watch** line under the filters. It follows your filters, and **Speed** changes it |
 
 ### Edit in bulk (table view)
 
@@ -82,14 +82,14 @@ The box in the header ticks everything the filters show. The bar above the table
 - **Select all filtered**, **Uncheck all** and **Invert**
 - **Move** the ticked videos to the other list
 - **Add a tag** to all of them (type it, press Enter), or **remove a tag** from them
-- **🗑 Remove selected**, which asks first and then gives you 20 seconds to undo
+- **Remove selected**, which asks first and then gives you 20 seconds to undo
 
 Ticked rows are always rows you can see. If you change a filter or switch tabs, rows that disappear are
 unticked, so a bulk action can never touch a video you cannot see.
 
 ### Rewatch
 
-Click **↻ Should Rewatch** on a video to move it to the second tab, and **↩ Back to Watch Later** to undo it.
+Click **Should Rewatch** on a video to move it to the second tab, and **Back to Watch Later** to undo it.
 
 Whenever you open a video that is in your Watch Later list, a red prompt appears with **Should Rewatch**,
 **Remove**, plus **Continue from 12:34** when you have watched part of the video (it jumps to where you stopped, a few seconds back). It stays until you choose, and it comes back as "Finished this one?" when the video ends.
@@ -108,7 +108,7 @@ Open `youtube.com/playlist?list=WL` while signed in. Two buttons appear in the d
 
 ### Stats
 
-Open the dialog and choose **📊 Stats**. Pick a range (7 days up to all time) to see:
+Open the dialog and choose **Stats**. Pick a range (7 days up to all time) to see:
 
 - tiles for **added**, **finished**, **finish rate**, **thrown away**, **waiting now** and **streak**
 - an **Added vs finished** chart and a **List size over time** chart (each has a "View as table")

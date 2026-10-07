@@ -34,6 +34,7 @@ import { matchesLength, resumeAt, withProgress } from '../lib/progress.js';
 import * as store from '../lib/storage.js';
 import { loadAll, removeAll } from './native-wl.js';
 import { h } from './dom.js';
+import { hydrateIcons, icon } from '../lib/icons.js';
 import { createProgressTracker } from './progress.js';
 import { renderStats } from './stats.js';
 import { EVENT, dayKey, eventFor, makeEvent } from '../lib/events.js';
@@ -76,7 +77,7 @@ const state = {
   endPromptedFor: null, // the "Finished?" prompt shows once per video
   prompt: null, // { id, dismiss } of the Should Rewatch / Remove prompt that is on screen
   hint: null,
-  pickId: null, // the video the 🎲 button suggested (its panel closes when the filters no longer show it)
+  pickId: null, // the video the Pick one for me button suggested (its panel closes when the filters no longer show it)
   showCoverage: false,
   stats: { events: [], snapshots: {}, loaded: false }, // the history, read when the Stats tab opens
   statsRange: '30d',
@@ -97,7 +98,7 @@ const root = host.attachShadow({ mode: 'open' });
 root.innerHTML = `
   <link rel="stylesheet" href="${chrome.runtime.getURL('content/overlay.css')}">
   <div class="root">
-    <button class="fab" type="button" title="Open My Watch Later">▶ My Watch Later <span class="fab-count">0</span></button>
+    <button class="fab" type="button" title="Open My Watch Later"><span data-icon="play" data-solo></span>My Watch Later <span class="fab-count">0</span></button>
     <div class="alarm-dock"></div>
     <div class="toasts" aria-live="polite"></div>
     <div class="modal" hidden>
@@ -108,9 +109,9 @@ root.innerHTML = `
           <nav class="tabs">
             <button type="button" class="tab" data-tab="watchLater">Watch Later <span class="count"></span></button>
             <button type="button" class="tab" data-tab="rewatch">Should Rewatch <span class="count"></span></button>
-            <button type="button" class="tab" data-tab="stats">📊 Stats</button>
+            <button type="button" class="tab" data-tab="stats"><span data-icon="bar-chart"></span>Stats</button>
           </nav>
-          <button type="button" class="icon-btn close" aria-label="Close">✕</button>
+          <button type="button" class="icon-btn close" aria-label="Close"><span data-icon="x" data-solo></span></button>
         </header>
         <div class="toolbar">
           <input class="f-query" type="search" placeholder="Search title, channel or tag…">
@@ -119,15 +120,15 @@ root.innerHTML = `
           <select class="f-sort" aria-label="Sort"></select>
           <button type="button" class="btn clear">Clear</button>
           <span class="seg" role="group" aria-label="View">
-            <button type="button" class="seg-btn" data-view="table">☰ Table</button>
-            <button type="button" class="seg-btn" data-view="cards">▦ Cards</button>
+            <button type="button" class="seg-btn" data-view="table"><span data-icon="list"></span>Table</button>
+            <button type="button" class="seg-btn" data-view="cards"><span data-icon="grid"></span>Cards</button>
           </span>
         </div>
         <div class="ranges"></div>
         <div class="subbar">
           <span class="result"></span>
           <span class="subbar-actions">
-            <button type="button" class="btn pick-btn" title="Suggests a random video from what the filters show">🎲 Pick one for me</button>
+            <button type="button" class="btn pick-btn" title="Suggests a random video from what the filters show"><span data-icon="dice"></span>Pick one for me</button>
             <label class="speed">Speed <select class="f-speed" aria-label="Playback speed"></select></label>
             <button type="button" class="btn data-check">Data check</button>
             <button type="button" class="btn refresh" hidden></button>
@@ -145,7 +146,7 @@ root.innerHTML = `
           <button type="button" class="btn small b-move"></button>
           <input class="b-tag" type="text" maxlength="30" placeholder="Add tag to selected, Enter">
           <select class="b-untag" aria-label="Remove a tag from the selected videos"></select>
-          <button type="button" class="btn small danger b-remove">🗑 Remove selected</button>
+          <button type="button" class="btn small danger b-remove"><span data-icon="trash"></span>Remove selected</button>
         </div>
         <div class="coverage" hidden></div>
         <div class="stats" hidden></div>
@@ -181,6 +182,8 @@ root.innerHTML = `
       </section>
     </div>
   </div>`;
+
+hydrateIcons(root);
 
 const $ = (sel) => root.querySelector(sel);
 const els = {
@@ -237,7 +240,7 @@ const els = {
 els.sort.replaceChildren(...SORT_OPTIONS.map((o) => h('option', { value: o.key, text: o.label })));
 els.speed.replaceChildren(...SPEEDS.map((s) => h('option', { value: String(s), text: `${s}x` })));
 
-// One group per range filter: [label] [preset ▾] and, when "Custom range…" is picked, [from] – [to].
+// One group per range filter: [label] [preset dropdown] and, when "Custom range…" is picked, [from] – [to].
 const rangeEls = {};
 for (const kind of RANGE_KINDS) {
   const select = h(
@@ -333,7 +336,9 @@ function borderRing() {
 
 function showToast({
   text,
+  textIcon, // an icon name shown before the headline
   sub,
+  subIcon,
   tagId,
   actions = [],
   timeout = 7000,
@@ -346,8 +351,8 @@ function showToast({
     'div',
     { class: `toast ${variant}`.trim(), role: 'status' },
     variant === 'finish' ? borderRing() : null,
-    h('div', { class: 'toast-text', text }),
-    sub ? h('div', { class: 'toast-sub', text: sub }) : null,
+    h('div', { class: 'toast-text' }, textIcon ? icon(textIcon) : null, text),
+    sub ? h('div', { class: 'toast-sub' }, subIcon ? icon(subIcon) : null, sub) : null,
   );
 
   if (minimizable) {
@@ -410,15 +415,19 @@ function showToast({
         'div',
         { class: 'toast-actions' },
         actions.map((a) =>
-          h('button', {
-            type: 'button',
-            class: `btn small${a.primary ? ' primary' : ''}`,
-            text: a.label,
-            onclick: async () => {
-              if (!a.keepOpen) dismiss(); // most buttons end the notice; a few (Continue) leave it up
-              await a.run();
+          h(
+            'button',
+            {
+              type: 'button',
+              class: `btn small${a.primary ? ' primary' : ''}`,
+              onclick: async () => {
+                if (!a.keepOpen) dismiss(); // most buttons end the notice; a few (Continue) leave it up
+                await a.run();
+              },
             },
-          }),
+            a.icon ? icon(a.icon) : null,
+            a.label,
+          ),
         ),
       ),
     );
@@ -577,12 +586,12 @@ function renderCard(video) {
       h(
         'div',
         { class: 'actions' },
-        h('button', {
-          type: 'button',
-          class: 'btn small',
-          text: inWatchLater ? '↻ Should Rewatch' : '↩ Back to Watch Later',
-          onclick: () => toggleList(video),
-        }),
+        h(
+          'button',
+          { type: 'button', class: 'btn small', onclick: () => toggleList(video) },
+          icon(inWatchLater ? 'repeat' : 'undo'),
+          inWatchLater ? 'Should Rewatch' : 'Back to Watch Later',
+        ),
         h('button', {
           type: 'button',
           class: 'btn small ghost',
@@ -608,7 +617,7 @@ function emptyState(inTabCount) {
       'div',
       { class: 'empty' },
       h('p', { text: 'Nothing to rewatch yet.' }),
-      h('p', { class: 'sub', text: 'Use “↻ Should Rewatch” on a video in your Watch Later tab.' }),
+      h('p', { class: 'sub', text: 'Use “Should Rewatch” on a video in your Watch Later tab.' }),
     );
   }
   return h(
@@ -643,18 +652,22 @@ const selectedVideos = () => state.videos.filter((v) => state.selected.has(v.id)
 
 function sortHeader(col) {
   const current = state.filters.sort;
-  const arrow = current === col.asc ? ' ▲' : current === col.desc ? ' ▼' : '';
-  return h('th', {
-    class: `sortable c-${col.key}`,
-    text: col.label + arrow,
-    title: 'Click to sort',
-    onclick: () => {
-      const first = col[col.first];
-      const other = col.first === 'asc' ? col.desc : col.asc;
-      state.filters.sort = current === first ? other : first;
-      render();
+  const arrow = current === col.asc ? 'chevron-up' : current === col.desc ? 'chevron-down' : null;
+  return h(
+    'th',
+    {
+      class: `sortable c-${col.key}`,
+      title: 'Click to sort',
+      onclick: () => {
+        const first = col[col.first];
+        const other = col.first === 'asc' ? col.desc : col.asc;
+        state.filters.sort = current === first ? other : first;
+        render();
+      },
     },
-  });
+    col.label,
+    arrow ? icon(arrow, 'sort-arrow') : null,
+  );
 }
 
 function setChecked(id, on) {
@@ -711,20 +724,28 @@ function renderRow(video, index) {
     h(
       'td',
       { class: 'c-rowactions' },
-      h('button', {
-        type: 'button',
-        class: 'btn small',
-        text: video.list === LISTS.WATCH_LATER ? '↻' : '↩',
-        title: video.list === LISTS.WATCH_LATER ? 'Move to Should Rewatch' : 'Move back to Watch Later',
-        onclick: () => toggleList(video),
-      }),
-      h('button', {
-        type: 'button',
-        class: 'btn small ghost',
-        text: '✕',
-        title: 'Remove',
-        onclick: () => removeWithUndo(video),
-      }),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn small',
+          title: video.list === LISTS.WATCH_LATER ? 'Move to Should Rewatch' : 'Move back to Watch Later',
+          'aria-label': video.list === LISTS.WATCH_LATER ? 'Move to Should Rewatch' : 'Move back to Watch Later',
+          onclick: () => toggleList(video),
+        },
+        icon(video.list === LISTS.WATCH_LATER ? 'repeat' : 'undo', 'solo'),
+      ),
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'btn small ghost',
+          title: 'Remove',
+          'aria-label': 'Remove',
+          onclick: () => removeWithUndo(video),
+        },
+        icon('x', 'solo'),
+      ),
     ),
   );
   // clicking anywhere else on the row ticks it too
@@ -779,8 +800,11 @@ function syncSelection() {
   els.bSelNone.disabled = n === 0;
   els.bInvert.disabled = total === 0;
   for (const el of [els.bMove, els.bRemove, els.bTag, els.bUntag]) el.disabled = n === 0;
-  els.bMove.textContent =
-    state.tab === LISTS.WATCH_LATER ? '↻ Move to Should Rewatch' : '↩ Move to Watch Later';
+  els.bMove.replaceChildren(
+    ...(state.tab === LISTS.WATCH_LATER
+      ? [icon('repeat'), 'Move to Should Rewatch']
+      : [icon('undo'), 'Move to Watch Later']),
+  );
   els.bUntag.replaceChildren(
     h('option', { value: '', text: 'Remove tag…' }),
     ...uniqueTags(selectedVideos()).map((t) => h('option', { value: t.name, text: `#${t.name} (${t.count})` })),
@@ -997,25 +1021,28 @@ function renderPick(shown) {
     h(
       'div',
       { class: 'pick-body' },
-      h('div', { class: 'pick-label', text: '🎲 How about this one?' }),
+      h('div', { class: 'pick-label' }, icon('dice'), 'How about this one?'),
       h('a', { class: 'pick-title', href: url, text: video.title }),
       h('div', { class: 'pick-meta', text: [video.channel, length].filter(Boolean).join(' · ') }),
       h(
         'div',
         { class: 'pick-actions' },
-        h('a', { class: 'btn primary', href: url, text: '▶ Watch now' }),
-        h('button', { type: 'button', class: 'btn', text: '🎲 Another', onclick: pickAnother }),
-        h('button', {
-          type: 'button',
-          class: 'btn',
-          text: '✕',
-          title: 'Close',
-          'aria-label': 'Close',
-          onclick: () => {
-            state.pickId = null;
-            render();
+        h('a', { class: 'btn primary', href: url }, icon('play'), 'Watch now'),
+        h('button', { type: 'button', class: 'btn', onclick: pickAnother }, icon('dice'), 'Another'),
+        h(
+          'button',
+          {
+            type: 'button',
+            class: 'btn',
+            title: 'Close',
+            'aria-label': 'Close',
+            onclick: () => {
+              state.pickId = null;
+              render();
+            },
           },
-        }),
+          icon('x', 'solo'),
+        ),
       ),
     ),
   );
@@ -1085,7 +1112,7 @@ function renderCoverage() {
   );
 }
 
-// "12 of 40 videos  ⏱ 8h 25m ≈ 8.4 hours to watch"
+// "12 of 40 videos  (clock) 8h 25m to watch"
 function renderSummary(shown, inTabCount, hidden = []) {
   const speed = state.settings.playbackSpeed || 1;
   const total = totalDuration(shown, speed);
@@ -1103,11 +1130,15 @@ function renderSummary(shown, inTabCount, hidden = []) {
     if (total.seconds >= 86400) asNumbers.push(formatDays(total.seconds));
     const numbers = asNumbers.length ? ` (${asNumbers.join(' · ')})` : '';
     parts.push(
-      h('span', {
-        class: 'total',
-        title: `Adds up what is left to watch in the ${total.known} videos shown (a video you started counts only its remaining part), at ${speed}x speed. A day is 24 hours and a month is 30 days.`,
-        text: `⏱ ${formatTotalTime(total.seconds)}${numbers} to ${verb}${speed === 1 ? '' : ` at ${speed}x`}`,
-      }),
+      h(
+        'span',
+        {
+          class: 'total',
+          title: `Adds up what is left to watch in the ${total.known} videos shown (a video you started counts only its remaining part), at ${speed}x speed. A day is 24 hours and a month is 30 days.`,
+        },
+        icon('timer'),
+        `${formatTotalTime(total.seconds)}${numbers} to ${verb}${speed === 1 ? '' : ` at ${speed}x`}`,
+      ),
     );
   }
   if (total.unknown) {
@@ -1611,8 +1642,10 @@ async function showSavedPrompt(id, kind) {
   const wasWatched = finished || state.endPromptedFor === id;
   const choose = (choice) => store.logEvents([makeEvent(EVENT.PROMPT, id, { choice, kind })]).catch(() => {});
   const dismiss = showToast({
-    text: finished ? '🎉 Finished this one? 🎬' : '📌 Saved in My Watch Later',
-    sub: `📺 ${record.title}`,
+    text: finished ? 'Finished this one?' : 'Saved in My Watch Later',
+    textIcon: finished ? 'check-circle' : 'pin',
+    sub: record.title,
+    subIcon: 'tv',
     timeout: 0, // stays until you choose
     variant: 'finish',
     minimizable: true,
@@ -1624,7 +1657,8 @@ async function showSavedPrompt(id, kind) {
     },
     actions: [
       {
-        label: '🔁 Should Rewatch',
+        icon: 'repeat',
+        label: 'Should Rewatch',
         primary: true,
         run: async () => {
           choose('rewatch');
@@ -1632,7 +1666,8 @@ async function showSavedPrompt(id, kind) {
         },
       },
       {
-        label: '🗑️ Remove',
+        icon: 'trash',
+        label: 'Remove',
         run: async () => {
           choose('remove');
           await store.removeVideo(id, wasWatched ? 'done' : 'manual');
@@ -1642,7 +1677,8 @@ async function showSavedPrompt(id, kind) {
         ? []
         : [
             {
-              label: `▶ Continue from ${formatDuration(resume)}`,
+              icon: 'play',
+              label: `Continue from ${formatDuration(resume)}`,
               keepOpen: true, // you are still watching, so the notice stays
               run: async () => {
                 choose('continue');

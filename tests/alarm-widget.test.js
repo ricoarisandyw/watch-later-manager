@@ -79,7 +79,9 @@ globalThis.chrome = {
 const { createAlarmWidget } = await import('../content/alarm.js');
 
 const walk = (n, out = []) => (out.push(n), (n.children || []).forEach((c) => walk(c, out)), out);
-const button = (root, label) => walk(root).find((n) => n.tagName === 'button' && n._text === label);
+// a button's label is the text it holds, whether that is its own text or text beside an icon
+const labelOf = (n) => (n._text || '') + (n.children || []).map((c) => c.text || '').join('');
+const button = (root, label) => walk(root).find((n) => n.tagName === 'button' && labelOf(n).trim() === label);
 const click = async (el) => {
   for (const fn of el.listeners.click) await fn();
 };
@@ -129,7 +131,7 @@ test('the alarm is a small button until you open it, and goes back to one after 
   await tick(10 * 60_000); // ten minutes of nobody pressing Stop
   assert.equal(face(root), 'ringing');
 
-  await click(button(root, '■ Stop'));
+  await click(button(root, 'Stop'));
   assert.equal(face(root), 'idle');
   assert.equal(document.title, 'Some video - YouTube');
 });
@@ -167,7 +169,7 @@ test('a box opened while the alarm still needs Stop (next video, reloaded tab) s
   root.isConnected = true;
   await tick(500);
   assert.equal(face(root), 'ringing');
-  await click(button(root, '■ Stop'));
+  await click(button(root, 'Stop'));
   assert.equal(face(root), 'idle');
   const again = createAlarmWidget();
   again.isConnected = true;

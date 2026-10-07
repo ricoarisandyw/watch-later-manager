@@ -1,4 +1,7 @@
 import * as store from '../lib/storage.js';
+import { hydrateIcons } from '../lib/icons.js';
+
+hydrateIcons(document);
 
 const status = document.getElementById('status');
 const SETTING_KEYS = ['overrideWatchLater', 'autoOpenHome', 'promptOnFinish', 'keepHistory'];
