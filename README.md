@@ -22,11 +22,13 @@ Everything stays in your browser. No account, no server, no tracking.
 - **Mass editing.** Tick videos (shift-click for a range, or select everything the filters show), then move,
   tag, untag or remove them all at once. Removals can be undone.
 - **Should Rewatch.** A second list for videos worth watching again. A red prompt on any saved video offers
-  *Should Rewatch*, *Remove* or *Keep*, and it can shrink to a small pill.
+  *Should Rewatch*, *Remove* or *Continue* (jump back to where you stopped), and it can shrink to a small pill.
 - **Bring your old list in, or clear it out.** Import your existing YouTube Watch Later, and optionally empty
   YouTube's own copy (with a backup and a typed confirmation).
 - **Stats.** How many videos you added and finished, how fast, how long until the list would be empty, which
   lengths and channels you actually finish, your oldest unfinished videos, and more.
+- **Alarm.** Watching YouTube while you wait for something to finish? Pick **2, 3 or 5
+  min**, or type your own, in the **Saved in My Watch Later** notice or the toolbar popup. When time is up you get a notification and a few beeps; click the notification to stop it.
 - **Tags, backup and dark mode.** Export and import your list and history as a file. The dialog follows YouTube's
   dark theme and hides itself in fullscreen.
 
@@ -86,7 +88,7 @@ unticked, so a bulk action can never touch a video you cannot see.
 Click **↻ Should Rewatch** on a video to move it to the second tab, and **↩ Back to Watch Later** to undo it.
 
 Whenever you open a video that is in your Watch Later list, a red prompt appears with **Should Rewatch**,
-**Remove** and **Keep**. It stays until you choose, and it comes back as "Finished this one?" when the video ends.
+**Remove**, plus **Continue from 12:34** when you have watched part of the video (it jumps to where you stopped, a few seconds back). It stays until you choose, and it comes back as "Finished this one?" when the video ends.
 The **–** button shrinks it to a small pill; click the pill to open it again. You can turn the prompt off in Settings.
 
 ### Import and clean up YouTube's own list

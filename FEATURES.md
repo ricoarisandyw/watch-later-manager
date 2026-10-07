@@ -150,7 +150,8 @@ Contents: [Saving](#1-saving-videos) · [The dialog](#2-the-dialog) · [Filters 
 
 - [x] **↻ Should Rewatch** moves a video to the second tab; **↩ Back to Watch Later** moves it back (with Undo).
 - [x] When you open a video that is in your Watch Later list, a **red prompt** appears with
-      **🔁 Should Rewatch · 🗑️ Remove · 👍 Keep**. It stays until you choose.
+      **🔁 Should Rewatch · 🗑️ Remove**, and **▶ Continue from 12:34** when part of the video was watched
+      (it seeks the player to the saved position minus 5 seconds, never backwards). It stays until you choose.
 - [x] It comes back as **"🎉 Finished this one?"** in the last 5 seconds (or when the video ends), once per video.
 - [x] It only reacts to the main player: not hover previews, and not ads.
 - [x] **Minimize** button shrinks it to a small pill; click the pill to open it. The choice is remembered. The "finished"

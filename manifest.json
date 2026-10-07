@@ -3,8 +3,8 @@
   "name": "My Watch Later",
   "version": "0.1.0",
   "description": "Right-click any YouTube video to save it, then browse, filter and rewatch your list in a clean dialog.",
-  "minimum_chrome_version": "105",
-  "permissions": ["contextMenus", "storage"],
+  "minimum_chrome_version": "109",
+  "permissions": ["contextMenus", "storage", "alarms", "notifications", "offscreen"],
   "host_permissions": ["https://www.youtube.com/*"],
   "background": {
     "service_worker": "background.js",

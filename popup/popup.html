@@ -12,6 +12,26 @@
       <div class="stat"><strong id="count-wl">–</strong><span>Watch Later</span></div>
       <div class="stat"><strong id="count-rewatch">–</strong><span>Should Rewatch</span></div>
     </div>
+    <section class="alarm" aria-labelledby="alarm-title">
+      <h2 id="alarm-title">⏰ Alarm</h2>
+      <div id="alarm-idle">
+        <div class="alarm-presets" role="group" aria-label="Alarm length">
+          <button type="button" class="alarm-preset" data-min="2">2 min</button>
+          <button type="button" class="alarm-preset" data-min="3">3 min</button>
+          <button type="button" class="alarm-preset" data-min="5">5 min</button>
+        </div>
+        <form id="alarm-custom" class="alarm-custom">
+          <input id="alarm-minutes" type="text" inputmode="decimal" placeholder="Custom" aria-label="Custom minutes" autocomplete="off">
+          <span>min</span>
+          <button type="submit">Start</button>
+        </form>
+        <p id="alarm-error" class="alarm-error" hidden>Enter 1 to 600 minutes.</p>
+      </div>
+      <div id="alarm-running" hidden>
+        <div class="alarm-time" id="alarm-left" aria-live="off">0:00</div>
+        <button id="alarm-cancel" type="button">Cancel alarm</button>
+      </div>
+    </section>
     <button id="open" class="primary" type="button">Open my list</button>
     <button id="options" class="link" type="button">Settings &amp; backup</button>
     <script type="module" src="popup.js"></script>

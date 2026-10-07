@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SAVE_EVERY_MS, matchesLength, progressUpdate, timeLeftSec, withProgress } from '../lib/progress.js';
+import { SAVE_EVERY_MS, matchesLength, progressUpdate, resumeAt, timeLeftSec, withProgress } from '../lib/progress.js';
 import { createProgressTracker } from '../content/progress.js';
 
 test('progressUpdate: save, clear or ignore', () => {
@@ -17,6 +17,19 @@ test('matchesLength tolerates 2 seconds and accepts an unknown saved length', ()
   assert.equal(matchesLength(600, 601), true);
   assert.equal(matchesLength(600, 900), false);
   assert.equal(matchesLength(600, null), true);
+});
+
+test('resumeAt starts a few seconds before the saved position', () => {
+  assert.equal(resumeAt(125.4, 1800), 120);
+  assert.equal(resumeAt(6, 1800), 1);
+  assert.equal(resumeAt(3, 1800), 0); // never negative
+  assert.equal(resumeAt(100, null), 95); // unknown length is fine
+});
+
+test('resumeAt has nothing to continue without a position, or at the very end', () => {
+  for (const none of [null, undefined, 0, -5, NaN, 'x']) assert.equal(resumeAt(none, 1800), null, String(none));
+  assert.equal(resumeAt(1800, 1800), null); // rewound start would be inside the last 5 seconds
+  assert.equal(resumeAt(1796, 1800), 1791); // still a few seconds of video left to watch
 });
 
 test('timeLeftSec', () => {

@@ -1,3 +1,4 @@
+import { ALARM_NAME, parseCustomMinutes } from './lib/alarm.js';
 import { parseVideoId } from './lib/model.js';
 import { fetchVideoMeta, fallbackMeta } from './lib/metadata.js';
 import { ensureBackfill, getVideo, saveVideo } from './lib/storage.js';
@@ -43,6 +44,81 @@ async function askForHint(tabId, id) {
   const hint = await tell(tabId, { type: 'get-hint' });
   return hint && hint.id === id ? hint : null;
 }
+
+// ---------- the alarm (set from the "Saved in My Watch Later" notice or the toolbar popup) ----------
+// Either one creates a chrome.alarms alarm; when it fires we show a notification and ring from a hidden page.
+
+const ALARM_NOTIFICATION = 'mwl-alarm-ring';
+const OFFSCREEN_URL = 'offscreen/offscreen.html';
+
+async function ringAlarm() {
+  chrome.notifications.create(ALARM_NOTIFICATION, {
+    type: 'basic',
+    iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+    title: "⏰ Time's up",
+    message: 'Your alarm went off. Click to stop it.',
+    priority: 2,
+    requireInteraction: true,
+  });
+  flashBadge('⏰', '#cc0000');
+  try {
+    if (!(await chrome.offscreen.hasDocument())) {
+      await chrome.offscreen.createDocument({
+        url: OFFSCREEN_URL,
+        reasons: ['AUDIO_PLAYBACK'],
+        justification: 'Play the alarm sound when the timer ends',
+      });
+    }
+    await chrome.runtime.sendMessage({ type: 'alarm-ring' });
+  } catch (err) {
+    console.warn('[My Watch Later] could not play the alarm sound', err); // the notification still shows
+  }
+}
+
+async function stopAlarm() {
+  chrome.notifications.clear(ALARM_NOTIFICATION);
+  try {
+    if (await chrome.offscreen.hasDocument()) await chrome.offscreen.closeDocument();
+  } catch {
+    // already gone
+  }
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === ALARM_NAME) ringAlarm();
+});
+chrome.notifications.onClicked.addListener((id) => {
+  if (id === ALARM_NOTIFICATION) stopAlarm();
+});
+chrome.notifications.onClosed.addListener((id) => {
+  if (id === ALARM_NOTIFICATION) stopAlarm();
+});
+// The page's alarm box talks to us here (the toolbar popup uses chrome.alarms directly).
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (!message) return false;
+  if (message.type === 'alarm-sound-done') {
+    stopAlarm();
+  } else if (message.type === 'alarm-get') {
+    chrome.alarms.get(ALARM_NAME).then((alarm) => sendResponse({ ringsAt: alarm ? alarm.scheduledTime : null }));
+    return true; // answer comes later
+  } else if (message.type === 'alarm-start') {
+    const minutes = parseCustomMinutes(message.minutes);
+    if (minutes == null) {
+      sendResponse({ ringsAt: null });
+      return false;
+    }
+    stopAlarm(); // starting a new one silences one that is still ringing
+    chrome.alarms
+      .create(ALARM_NAME, { delayInMinutes: minutes })
+      .then(() => chrome.alarms.get(ALARM_NAME))
+      .then((alarm) => sendResponse({ ringsAt: alarm ? alarm.scheduledTime : null }));
+    return true;
+  } else if (message.type === 'alarm-cancel') {
+    chrome.alarms.clear(ALARM_NAME).then(() => sendResponse({}));
+    return true;
+  }
+  return false;
+});
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_ID || !tab || tab.id == null) return;

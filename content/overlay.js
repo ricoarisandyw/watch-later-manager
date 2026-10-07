@@ -28,7 +28,8 @@ import {
   uniqueTags,
 } from '../lib/filters.js';
 import { fetchVideoMeta } from '../lib/metadata.js';
-import { withProgress } from '../lib/progress.js';
+import { createAlarmWidget } from './alarm.js';
+import { matchesLength, resumeAt, withProgress } from '../lib/progress.js';
 import * as store from '../lib/storage.js';
 import { loadAll, removeAll } from './native-wl.js';
 import { h } from './dom.js';
@@ -312,6 +313,17 @@ function alive() {
 
 // ---------- toasts ----------
 
+// The spinning gradient border and glow of the big notice, drawn with divs behind a white face (see overlay.css).
+function borderRing() {
+  return h(
+    'div',
+    { class: 'toast-ring', 'aria-hidden': 'true' },
+    h('div', { class: 'toast-glow' }, h('div', { class: 'toast-spin' })),
+    h('div', { class: 'toast-edge' }, h('div', { class: 'toast-spin' })),
+    h('div', { class: 'toast-face' }),
+  );
+}
+
 function showToast({
   text,
   sub,
@@ -322,10 +334,12 @@ function showToast({
   minimizable = false, // adds a button that shrinks the notice to a small pill
   minimized = false, // start as a pill
   onMinimize = () => {}, // called with true / false when the button is pressed
+  extra = null, // an element shown under the buttons
 }) {
   const el = h(
     'div',
     { class: `toast ${variant}`.trim(), role: 'status' },
+    variant === 'finish' ? borderRing() : null,
     h('div', { class: 'toast-text', text }),
     sub ? h('div', { class: 'toast-sub', text: sub }) : null,
   );
@@ -403,6 +417,8 @@ function showToast({
       ),
     );
   }
+
+  if (extra) el.append(extra);
 
   els.toasts.append(el);
   arm();
@@ -1491,9 +1507,17 @@ function dismissPrompt() {
   }
 }
 
-// The red Should Rewatch / Remove / Keep prompt for a video saved in Watch Later.
+// The Should Rewatch / Remove / Continue prompt for a video saved in Watch Later.
 //   'open' = shown as soon as you open the video, and it stays until you choose
-//   'end'  = shown again when the video finishes (even if you pressed Keep earlier)
+//   'end'  = shown again when the video finishes
+// "Continue": jump the player to where you stopped (never backwards) and play.
+function continueVideo(sec, record) {
+  const video = document.querySelector('video.html5-main-video');
+  if (!video || !matchesLength(video.duration, record.durationSec)) return;
+  if (video.currentTime < sec) video.currentTime = sec;
+  video.play().catch(() => {});
+}
+
 async function showSavedPrompt(id, kind) {
   if (!state.settings.promptOnFinish) return;
   let record;
@@ -1504,10 +1528,20 @@ async function showSavedPrompt(id, kind) {
     return;
   }
   if (!record || record.list !== LISTS.WATCH_LATER) return;
+  const finished = kind === 'end';
+  // read now: once the video plays, the saved position moves on
+  let resume = null;
+  if (!finished) {
+    try {
+      const saved = (await store.getProgress())[id];
+      resume = resumeAt(saved && saved.sec, record.durationSec);
+    } catch {
+      // no position: the prompt just has no Continue button
+    }
+  }
   if (parseVideoId(location.href) !== id) return; // you moved on while we were looking it up
 
   dismissPrompt();
-  const finished = kind === 'end';
   // Removing a video you just finished means "done"; removing one you haven't watched is just discarding it.
   const wasWatched = finished || state.endPromptedFor === id;
   const choose = (choice) => store.logEvents([makeEvent(EVENT.PROMPT, id, { choice, kind })]).catch(() => {});
@@ -1516,6 +1550,7 @@ async function showSavedPrompt(id, kind) {
     sub: `📺 ${record.title}`,
     timeout: 0, // stays until you choose
     variant: 'finish',
+    extra: finished ? null : createAlarmWidget(), // the alarm belongs to the opening prompt, not the "finished" one
     minimizable: true,
     // the "finished" moment always opens fully; the opening prompt follows your last choice
     minimized: !finished && Boolean(state.settings.promptMinimized),
@@ -1539,7 +1574,17 @@ async function showSavedPrompt(id, kind) {
           await store.removeVideo(id, wasWatched ? 'done' : 'manual');
         },
       },
-      { label: '👍 Keep', run: async () => choose('keep') },
+      ...(resume == null
+        ? []
+        : [
+            {
+              label: `▶ Continue from ${formatDuration(resume)}`,
+              run: async () => {
+                choose('continue');
+                continueVideo(resume, record);
+              },
+            },
+          ]),
     ],
   });
   state.prompt = { id, dismiss };
